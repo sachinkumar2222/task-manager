@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id          String        @id @default(uuid())
+  name        String
+  members     WorkspaceMember[]
+  invitations Invitation[] // Ek workspace mein kai invitations ho sakte hain
+  createdAt   DateTime      @default(now())
+
+  @@map("workspaces")
+}
+
+model User {
+  id           String            @id @default(uuid())
+  fullName     String
+  email        String            @unique
+  passwordHash String
+  workspaces   WorkspaceMember[]
+  createdAt    DateTime          @default(now())
+
+  @@map("users")
+}
+
+model WorkspaceMember {
+  userId      String
+  workspaceId String
+  role        String
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([userId, workspaceId])
+  @@map("workspace_members")
+}
+
+// --- YEH NAYA MODEL HAI ---
+// Is table mein saare pending invitations save honge
+model Invitation {
+  id          String   @id @default(uuid())
+  email       String   // Jis email par invite bheja gaya hai
+  token       String   @unique // Ek unique, secret token jo invite link mein use hoga
+  workspaceId String
+  expiresAt   DateTime // Invite kab expire hoga
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Ek email par ek workspace ke liye ek hi active invite ho sakta hai
+  @@unique([email, workspaceId])
+  @@map("invitations")
+}
+
+

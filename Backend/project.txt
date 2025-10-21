@@ -1,0 +1,72 @@
+📂 tasksphere/
+├── 📂 api-gateway/              # (Port 4000) The single entry point for the frontend.
+│   ├── 📜 server.js
+│   ├── 📜 package.json
+│   └── 📜 .env
+│
+├── 📂 auth-service/              # (Port 4001) Manages users, roles, and JWTs.
+│   ├── 📂 controllers/
+│   │   └── 📜 authController.js
+│   ├── 📂 models/
+│   │   └── 📜 userModel.js
+│   ├── 📂 routes/
+│   │   └── 📜 authRoutes.jsx
+│   ├── 📜 server.js
+│   ├── 📜 package.json
+│   └── 📜 .env
+│
+├── 📂 task-service/              # (Port 4002) Core logic for projects, tasks, and comments.
+│   ├── 📂 controllers/
+│   │   ├── 📜 projectController.js
+│   │   ├── 📜 taskController.js
+│   │   └── 📜 commentController.js
+│   ├── 📂 db/
+│   │   └── 📜 db.js               # Manages the PostgreSQL connection pool.
+│   ├── 📂 middleware/
+│   │   └── 📜 checkAuth.js         # Verifies the JWT from the Auth Service.
+│   ├── 📂 models/
+│   │   ├── 📜 projectModel.js
+│   │   ├── 📜 taskModel.js
+│   │   └── 📜 commentModel.js
+│   ├── 📂 routes/
+│   │   └── 📜 apiRoutes.js        # Defines all routes for projects, tasks, etc.
+│   ├── 📜 server.js
+│   ├── 📜 package.json
+│   └── 📜 .env
+│
+├── 📂 notification-service/      # (Port 4003) Handles real-time notifications via WebSockets.
+│   ├── 📂 listeners/
+│   │   └── 📜 eventListener.js     # Listens for events from other services (e.g., RabbitMQ).
+│   ├── 📂 websocket/
+│   │   └── 📜 socketHandler.js    # Manages client WebSocket connections.
+│   ├── 📜 server.js
+│   ├── 📜 package.json
+│   └── 📜 .env
+│
+├── 📂 file-service/              # (Port 4004) Manages file uploads to cloud storage.
+│   ├── 📂 controllers/
+│   │   └── 📜 fileController.js
+│   ├── 📂 middleware/
+│   │   └── 📜 checkAuth.js
+│   ├── 📂 routes/
+│   │   └── 📜 fileRoutes.js
+│   ├── 📂 services/
+│   │   └── 📜 s3Service.js        # Contains all logic for interacting with AWS S3.
+│   ├── 📜 server.js
+│   ├── 📜 package.json
+│   └── 📜 .env
+│
+├── 📂 analytics-service/         # (Port 4005) Processes events and serves analytics data.
+│   ├── 📂 controllers/
+│   │   └── 📜 analyticsController.js
+│   ├── 📂 listeners/
+│   │   └── 📜 eventProcessor.js   # Consumes and processes events.
+│   ├── 📂 models/
+│   │   └── 📜 analyticsModel.js
+│   ├── 📂 routes/
+│   │   └── 📜 analyticsRoutes.js
+│   ├── 📜 server.js
+│   ├── 📜 package.json
+│   └── 📜 .env
+│
+└── 📜 .gitignore                # To ignore node_modules, .env files, etc.

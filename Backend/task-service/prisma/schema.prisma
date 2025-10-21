@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // The ID of the workspace this project belongs to. This is our key for data separation.
+  workspaceId String
+  // The ID of the user who created the project.
+  creatorId   String
+
+  // A project can have many tasks.
+  tasks       Task[]
+
+  @@map("projects")
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  // Status will be one of: 'TODO', 'IN_PROGRESS', 'DONE'
+  status      String   @default("TODO")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // The ID of the project this task belongs to.
+  projectId   String
+  // The ID of the user who created the task.
+  creatorId   String
+  // The ID of the user this task is assigned to (optional).
+  assigneeId  String?
+
+  // Relation to the Project model.
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // A task can have many comments.
+  comments    Comment[]
+
+  @@map("tasks")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // The ID of the task this comment is on.
+  taskId    String
+  // The ID of the user who wrote the comment.
+  authorId  String
+
+  // Relation to the Task model.
+  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}

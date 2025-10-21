@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model File {
+  id        String   @id @default(uuid())
+  fileKey   String   @unique // S3 mein file ka unique naam (e.g., 'uploads/123-abc-task.jpg')
+  fileName  String   // Original file ka naam (e.g., 'task-screenshot.jpg')
+  fileType  String   // File ka MIME type (e.g., 'image/jpeg')
+  
+  // Relations to other services' data
+  taskId      String
+  workspaceId String
+  uploaderId  String
+
+  createdAt DateTime @default(now())
+
+  @@map("files")
+}
