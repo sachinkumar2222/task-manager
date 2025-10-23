@@ -1,0 +1,70 @@
+📂 frontend/
+├── 📂 public/
+│   ├── 📜 index.html        # Hamari poori app is ek HTML file ke andar chalegi
+│   └── 📜 favicon.ico
+│
+├── 📂 src/                    # Hamara 99% code is folder ke andar hoga
+│   │
+│   ├── 📂 api/ (or services/)  # Backend se baat karne ki saari logic
+│   │   ├── 📜 apiClient.js     # Central Axios instance (API Gateway se baat karega)
+│   │   ├── 📜 authService.js    # login(), signup(), acceptInvite()
+│   │   ├── 📜 taskService.js    # getProjects(), createTask()
+│   │   ├── 📜 fileService.js    # getUploadUrl()
+│   │   └── 📜 analyticsService.js # getDashboardStats()
+│   │
+│   ├── 📂 assets/              # Images, fonts, aur global CSS
+│   │   ├── 📂 images/
+│   │   │   └── 📜 logo.png
+│   │   └── 📜 index.css         # Global styles
+│   │
+│   ├── 📂 components/          # Chote, reusable building blocks
+│   │   ├── 📂 common/          # Har jagah istemaal hone waale components
+│   │   │   ├── 📜 Button.js
+│   │   │   ├── 📜 Input.js
+│   │   │   ├── 📜 Modal.js
+│   │   │   └── 📜 Spinner.js
+│   │   │
+│   │   ├── 📂 layout/          # Page ka structure (navbar, sidebar)
+│   │   │   ├── 📜 AppLayout.js      # (NEW) Logged-in user ka layout (Sidebar + Navbar)
+│   │   │   ├── 📜 PublicLayout.js   # (NEW) Public pages ka layout (Simple Nav + Footer)
+│   │   │   ├── 📜 Navbar.js       # AppLayout ka hissa
+│   │   │   ├── 📜 Sidebar.js      # AppLayout ka hissa
+│   │   │   └── 📜 Footer.js       # (NEW) PublicLayout ka hissa
+│   │   │
+│   │   ├── 📂 landing/           # (NEW) Landing page ke sections
+│   │   │   ├── 📜 HeroSection.js   # "Bring all your work..."
+│   │   │   ├── 📜 FeaturesSection.js
+│   │   │   └── 📜 Testimonials.js
+│   │   │
+│   │   └── 📂 kanban/            # Task board se jude specific components
+│   │       ├── 📜 KanbanColumn.js
+│   │       ├── 📜 TaskCard.js
+│   │       └── 📜 TaskDetailsModal.js
+│   │
+│   ├── 📂 context/             # Global state management
+│   │   └── 📜 AuthContext.js    # User ka login state poori app mein manage karega
+│   │
+│   ├── 📂 hooks/               # Custom, reusable logic
+│   │   ├── 📜 useAuth.js       # AuthContext ko use karne ka shortcut
+│   │   └── 📜 useApi.js        # API loading/error states handle karne ke liye
+│   │
+│   ├── 📂 pages/               # Har "screen" ya "page" ek file
+│   │   ├── 📜 LandingPage.js    # (NEW) Hamara naya homepage (aapke screenshot jaisa)
+│   │   ├── 📜 LoginPage.js      # Login form
+│   │   ├── 📜 SignupPage.js     # Naya workspace banane wala page
+│   │   ├── 📜 AcceptInvitePage.js # Team member ke liye invite page
+│   │   ├── 📜 DashboardPage.js  # Login ke baad dikhne wala main page
+│   │   ├── 📜 ProjectPage.js    # Ek single project ka poora task board
+│   │   └── 📜 NotFoundPage.js   # 404 Error page
+│   │
+│   ├── 📂 utils/               # Helper functions
+│   │   ├── 📜 tokenManager.js   # Token ko localStorage mein save/remove karna
+│   │   └── 📜 dateFormatter.js  # Dates ko sundar format mein dikhana
+│   │
+│   ├── 📜 App.js               # Main component jahan saare routes (pages) define honge
+│   ├── 📜 ProtectedRoute.js   # (NEW) Ek helper jo private pages ko protect karega
+│   └── 📜 index.js             # Application ka entry point
+│
+├── 📜 .env                     # Frontend ke environment variables (API_GATEWAY_URL)
+├── 📜 package.json              # Saari frontend libraries (react, react-router-dom, axios)
+└── 📜 tailwind.config.js      # (Optional) Styling ke liye

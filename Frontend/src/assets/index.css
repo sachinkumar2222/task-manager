@@ -1,0 +1,26 @@
+/* Tailwind CSS ke base styles, components, aur utilities ko import karta hai */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Google Font (Inter) import karein */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.backgroundStyle {
+  background: radial-gradient(
+    at 10% 10%, 
+    rgb(223, 228, 254), 
+    rgb(190, 243, 254), 
+    rgb(204, 243, 220)
+  );
+}
