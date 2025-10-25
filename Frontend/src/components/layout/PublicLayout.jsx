@@ -49,7 +49,7 @@ const PublicLayout = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 text-2xl font-bold text-gray-900">
               <Zap className="h-7 w-7 text-indigo-600" /> 
-              <span>Task Master</span>
+              <span>Task Sphere</span>
             </Link>
             {/* Nav Links */}
             <nav className="hidden md:flex gap-8 items-center">

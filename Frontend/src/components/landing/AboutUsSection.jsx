@@ -57,7 +57,7 @@ const AboutUsSection = () => {
                 <img 
                   src={item.src} 
                   alt={item.alt} 
-                  className="w-full h-48 object-cover object-center" 
+                  className="w-full h-full object-cover object-center" 
                 />
               ) : (
                 <div className="p-6 text-left">

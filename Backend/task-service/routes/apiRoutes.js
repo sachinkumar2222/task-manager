@@ -15,7 +15,10 @@ router.get('/projects', checkAuth, projectController.getProjectsByWorkspace);
 // Task Routes
 router.post('/tasks', checkAuth, taskController.createTask);
 router.patch('/tasks/:taskId', checkAuth, taskController.updateTask);
-router.get('/projects/:projectId/tasks', checkAuth, taskController.getTasksByProject);
+// --- CORRECTED FUNCTION NAME BELOW ---
+// Changed getTasksByProject to getTasksForProject to match the controller export
+router.get('/projects/:projectId/tasks', checkAuth, taskController.getTasksForProject); 
+router.delete('/tasks/:taskId', checkAuth, taskController.deleteTask); // Added delete route based on controller
 
 // Comment Routes
 router.post('/tasks/:taskId/comments', checkAuth, commentController.createComment);
@@ -23,3 +26,4 @@ router.get('/tasks/:taskId/comments', checkAuth, commentController.getCommentsBy
 
 
 module.exports = router;
+

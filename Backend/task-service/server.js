@@ -6,7 +6,7 @@ const app = express();
 
 app.use(express.json());
 
-app.use('/api', apiRoutes);
+app.use('/', apiRoutes);
 
 app.get('/', (req, res) => {
     res.status(200).json({ 
@@ -15,7 +15,7 @@ app.get('/', (req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 4002;
 
 app.listen(PORT, () => {
   console.log(`🚀 Task Service is live and listening on port ${PORT}`);

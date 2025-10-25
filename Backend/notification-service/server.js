@@ -11,7 +11,7 @@ const server = http.createServer(app);
 // Configure Socket.IO with CORS settings
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN,
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173', // Default to frontend dev server
     methods: ["GET", "POST"]
   }
 });
@@ -23,15 +23,18 @@ initSocketHandler(io);
 app.use(express.json());
 
 // --- Routes ---
-// This route will be used internally by other services to trigger notifications
-app.use('/api/notify', eventListenerRoutes);
+// --- ROUTE REGISTRATION UPDATED ---
+// Register eventListenerRoutes at the root ('/') because the API Gateway adds '/api/notify'
+app.use('/', eventListenerRoutes); 
 
 // Health check endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ status: "success", message: "Notification Service is healthy and running!" });
 });
 
-const PORT = process.env.PORT || 4003;
+// Use the correct port for the notification service from our plan
+const PORT = process.env.PORT || 4003; 
 server.listen(PORT, () => {
   console.log(`🚀 Notification Service is live and listening on port ${PORT}`);
 });
+

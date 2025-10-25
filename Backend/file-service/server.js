@@ -4,10 +4,14 @@ const fileRoutes = require('./routes/fileRoutes');
 
 const app = express();
 
+// Middleware to parse JSON bodies
 app.use(express.json());
 
-app.use('/api/files', fileRoutes);
+// --- ROUTE REGISTRATION UPDATED ---
+// Register fileRoutes at the root ('/') because the API Gateway adds '/api/files'
+app.use('/', fileRoutes); 
 
+// Health check endpoint
 app.get('/', (req, res) => {
     res.status(200).json({ 
         status: "success", 
@@ -15,8 +19,10 @@ app.get('/', (req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 4004;
+// Use the correct port for the file service from our plan
+const PORT = process.env.PORT || 4004; 
 
 app.listen(PORT, () => {
   console.log(`🚀 File Service is live and listening on port ${PORT}`);
 });
+

@@ -1,18 +1,19 @@
 const Project = require('../models/projectModel');
-// Analytics client ko import karein
+// Import the Analytics client
 const { sendAnalyticsEvent } = require('../utils/analyticsClient');
 
 /**
- * Ek naya project banata hai aur analytics event bhejta hai.
+ * Creates a new project and sends an analytics event.
  */
 exports.createProject = async (req, res) => {
   try {
     const { name, description } = req.body;
-    // User ki ID aur Workspace ki ID JWT se nikalo
+    // Extract user ID and workspace ID from JWT
     const { userId, workspaceId } = req.userData;
+    console.log("this is create project controller ")
 
     if (!name) {
-      return res.status(400).json({ message: 'Project ka naam zaroori hai.' });
+      return res.status(400).json({ message: 'Project name is required.' });
     }
 
     const newProject = await Project.create({
@@ -23,7 +24,7 @@ exports.createProject = async (req, res) => {
     });
 
     // --- ANALYTICS LOGIC ---
-    // Naya project banne ka event bhejo
+    // Send an event when a new project is created
     sendAnalyticsEvent({
       eventType: 'PROJECT_CREATED',
       workspaceId,
@@ -33,23 +34,22 @@ exports.createProject = async (req, res) => {
 
     res.status(201).json(newProject);
   } catch (error) {
-    console.error("Project banane mein error:", error);
+    console.error("Error creating project:", error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 /**
- * User ke current workspace ke saare projects ko fetch karta hai.
+ * Fetches all projects for the user's current workspace.
  */
 exports.getProjectsByWorkspace = async (req, res) => {
   try {
-    // Workspace ki ID JWT se nikalo
+    // Extract workspace ID from JWT
     const { workspaceId } = req.userData;
     const projects = await Project.findByWorkspace(workspaceId);
     res.status(200).json(projects);
   } catch (error) {
-    console.error("Projects fetch karne mein error:", error);
+    console.error("Error fetching projects:", error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-

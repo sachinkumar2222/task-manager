@@ -1,0 +1,26 @@
+{
+  "name": "tasksphere-backend",
+  "version": "1.0.0",
+  "description": "Runs all TaskSphere backend microservices concurrently.",
+  "main": "index.js",
+  "scripts": {
+    "//": "--- Individual Service Start Scripts ---",
+    "dev:auth": "cd auth-service && npm run dev",
+    "dev:task": "cd task-service && npm run dev",
+    "dev:notify": "cd notification-service && npm run dev",
+    "dev:analytics": "cd analytics-service && npm run dev",
+    "dev:file": "cd file-service && npm run dev",
+    "dev:gateway": "cd api-gateway && npm run dev",
+    "//": "--- Concurrent Start Script ---",
+    "start:backend": "concurrently \"npm:dev:auth\" \"npm:dev:task\" \"npm:dev:notify\" \"npm:dev:analytics\" \"npm:dev:file\" \"npm:dev:gateway\""
+  },
+  "keywords": [
+    "microservices",
+    "backend"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2" 
+  }
+}

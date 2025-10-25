@@ -8,9 +8,13 @@ const app = express();
 
 app.use(express.json());
 
-app.use('/api/auth', authRoutes);
+// --- ROUTES REGISTRATION UPDATED ---
+// Register authRoutes at the root ('/') because the API Gateway already adds '/api/auth'
+app.use('/', authRoutes); 
 
-app.use('/api/workspaces', workspaceRoutes);
+// Register workspaceRoutes at the root ('/') because the API Gateway already adds '/api/workspaces'
+app.use('/', workspaceRoutes); 
+
 
 app.get('/', (req, res) => {
     res.status(200).json({ 
@@ -19,7 +23,8 @@ app.get('/', (req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 5001;
+// Use the correct port for the auth service
+const PORT = process.env.PORT || 4001; 
 
 app.listen(PORT, () => {
   console.log(`🚀 Auth Service is live and listening on port ${PORT}`);

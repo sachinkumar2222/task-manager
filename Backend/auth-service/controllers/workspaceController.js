@@ -1,3 +1,4 @@
+// auth-service/controllers/workspaceController.js
 const Workspace = require('../models/workspaceModel');
 const crypto = require('crypto'); // Required for creating invite tokens
 
@@ -31,21 +32,16 @@ exports.createWorkspace = async (req, res) => {
  */
 exports.inviteUser = async (req, res) => {
   try {
-    // Extract user email and workspace ID from the request
     const { email } = req.body;
     const { workspaceId } = req.params;
-    // Extract inviter’s ID from the JWT
     const inviterId = req.userData.userId;
 
     if (!email) {
       return res.status(400).json({ message: 'Email is required to send an invitation.' });
     }
 
-    // Call the model function to create the invitation in the database
     const invitation = await Workspace.createInvitation(workspaceId, inviterId, email);
 
-    // For now: we won’t actually send an email.
-    // Instead, we’ll log an “invite link” in the console for testing purposes.
     console.log('--- INVITATION CREATED ---');
     console.log(`Invite for: ${email}`);
     console.log(`Workspace ID: ${workspaceId}`);
@@ -56,7 +52,6 @@ exports.inviteUser = async (req, res) => {
     res.status(200).json({ message: 'Invitation has been sent successfully.' });
 
   } catch (error) {
-    // If the model throws a specific error message (like "Only admins can invite"), show it
     if (
       error.message === 'Only admins can invite users.' ||
       error.message === 'User is already a member of this workspace.'
@@ -67,4 +62,24 @@ exports.inviteUser = async (req, res) => {
     console.error('Invite User Error:', error);
     res.status(500).json({ message: 'Internal server error while sending invitation.' });
   }
+};
+
+/**
+ * Fetches all workspaces the logged-in user is a member of. (NEW FUNCTION)
+ */
+exports.getUserWorkspaces = async (req, res) => {
+    try {
+        // User ID ko checkAuth middleware se nikalo
+        const userId = req.userData.userId;
+
+        // Model function ko call karke user ke workspaces fetch karo
+        const workspaces = await Workspace.findUserWorkspaces(userId);
+
+        // Workspaces ki list response mein bhejo
+        res.status(200).json(workspaces);
+
+    } catch (error) {
+        console.error('Get User Workspaces Error:', error);
+        res.status(500).json({ message: 'Internal server error while fetching workspaces.' });
+    }
 };
