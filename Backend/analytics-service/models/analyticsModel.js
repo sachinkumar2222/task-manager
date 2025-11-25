@@ -1,43 +1,33 @@
 const mongoose = require('mongoose');
 
 // Define the schema for our analytics events.
-// A schema is a blueprint for the documents in a MongoDB collection.
 const AnalyticsEventSchema = new mongoose.Schema({
-  // The type of event that occurred (e.g., 'TASK_COMPLETED', 'PROJECT_CREATED').
   eventType: {
     type: String,
     required: true,
     trim: true,
   },
-  // The ID of the workspace this event belongs to. This is crucial for separating data.
   workspaceId: {
     type: String,
     required: true,
-    index: true, // We add an index to make queries by workspaceId much faster.
+    index: true,
   },
-  // The ID of the user who triggered the event.
   userId: {
     type: String,
     required: true,
   },
-  // A flexible payload to store any additional data related to the event.
-  // For a 'TASK_COMPLETED' event, this might include the taskId and projectId.
   payload: {
     type: mongoose.Schema.Types.Mixed,
     default: {},
   },
-  // The timestamp of when the event occurred.
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-// Create the Mongoose model from the schema.
-// This model is what we will use to interact with the 'analyticsevents' collection in MongoDB.
 const AnalyticsEvent = mongoose.model('AnalyticsEvent', AnalyticsEventSchema);
 
-// Create an object to export our database functions.
 const Analytics = {
   /**
    * Saves a new event document to the database.
@@ -51,32 +41,91 @@ const Analytics = {
 
   /**
    * Calculates key statistics for a given workspace's dashboard.
-   * @param {string} workspaceId - The ID of the workspace to get stats for.
-   * @returns {Promise<object>} An object containing the calculated stats.
+   * NOW INCLUDES TIME-BASED DATA for charts.
    */
   async getWorkspaceDashboardStats(workspaceId) {
-    // We use Promise.all to run multiple database queries in parallel for better performance.
-    const [totalProjects, totalTasks, completedTasks] = await Promise.all([
-      // Count all documents where the eventType is 'PROJECT_CREATED' for this workspace.
+    // Calculate date 7 days ago
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    
+    // 1. Get simple counts
+    const [
+        totalProjects,
+        totalTasks,
+        completedTasks,
+        createdTasksLast7Days
+    ] = await Promise.all([
       AnalyticsEvent.countDocuments({ workspaceId, eventType: 'PROJECT_CREATED' }),
-      // Count all documents where the eventType is 'TASK_CREATED' for this workspace.
       AnalyticsEvent.countDocuments({ workspaceId, eventType: 'TASK_CREATED' }),
-      // Count all documents where the eventType is 'TASK_COMPLETED' for this workspace.
       AnalyticsEvent.countDocuments({ workspaceId, eventType: 'TASK_COMPLETED' }),
+      AnalyticsEvent.countDocuments({
+        workspaceId,
+        eventType: 'TASK_CREATED',
+        createdAt: { $gte: sevenDaysAgo }
+      })
     ]);
 
-    // Calculate the number of active tasks.
-    const activeTasks = totalTasks - completedTasks;
+    // 2. Get data for line chart (Tasks Completed in Last 7 Days, grouped by day)
+    // We use Mongoose Aggregation Pipeline for this
+    const completionTrendData = await AnalyticsEvent.aggregate([
+      {
+        // Find events that match criteria
+        $match: {
+          workspaceId: workspaceId,
+          eventType: 'TASK_COMPLETED',
+          createdAt: { $gte: sevenDaysAgo }
+        }
+      },
+      {
+        // Group by the date part of 'createdAt'
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "UTC" } }, // Added timezone
+          count: { $sum: 1 }
+        }
+      },
+      {
+        // Format the output
+        $project: {
+          _id: 0, // Exclude the _id field
+          date: "$_id", // Rename _id to date
+          count: 1 // Include the count
+        }
+      },
+      {
+        // Sort by date ascending
+        $sort: { date: 1 }
+      }
+    ]);
+    
+    // 3. Format data for the chart (fill in missing days with 0)
+    const taskTrendData = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+        // Ensure date string is in UTC to match aggregation
+        const dateString = d.toISOString().split('T')[0]; 
+        const found = completionTrendData.find(item => item.date === dateString);
+        taskTrendData.push({
+            date: dateString, // 'YYYY-MM-DD'
+            name: d.toLocaleDateString('en-US', { weekday: 'short' }), // 'Mon', 'Tue'
+            count: found ? found.count : 0
+        });
+    }
 
+    // Calculate derived stats
+    const activeTasks = totalTasks - completedTasks;
+    const completedTasksLast7Days = taskTrendData.reduce((acc, day) => acc + day.count, 0);
+
+    // Return all stats
     return {
       totalProjects,
       totalTasks,
       completedTasks,
       activeTasks,
+      createdTasksLast7Days,
+      completedTasksLast7Days, // This is now a calculated sum
+      taskTrendData // This is the new array for the chart
     };
   },
 };
 
-// Export the Analytics model object.
 module.exports = Analytics;
 

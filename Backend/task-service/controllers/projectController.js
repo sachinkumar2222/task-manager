@@ -8,23 +8,26 @@ const { sendAnalyticsEvent } = require('../utils/analyticsClient');
 exports.createProject = async (req, res) => {
   try {
     const { name, description } = req.body;
-    // Extract user ID and workspace ID from JWT
-    const { userId, workspaceId } = req.userData;
-    console.log("this is create project controller ")
+    // Extract user ID and workspace ID from JWT/header
+    const { userId, workspaceId } = req.userData; // Assuming checkAuth adds workspaceId
 
     if (!name) {
       return res.status(400).json({ message: 'Project name is required.' });
     }
+    // Ensure workspaceId is present
+    if (!workspaceId) {
+        return res.status(400).json({ message: 'Workspace ID is missing.' });
+    }
+
 
     const newProject = await Project.create({
       name,
       description,
-      workspaceId,
+      workspaceId, // Pass workspaceId to model
       creatorId: userId,
     });
 
     // --- ANALYTICS LOGIC ---
-    // Send an event when a new project is created
     sendAnalyticsEvent({
       eventType: 'PROJECT_CREATED',
       workspaceId,
@@ -35,7 +38,11 @@ exports.createProject = async (req, res) => {
     res.status(201).json(newProject);
   } catch (error) {
     console.error("Error creating project:", error);
-    res.status(500).json({ message: 'Internal server error' });
+    // Handle potential Prisma validation errors more gracefully
+    if (error.code === 'P2002') { // Example: Unique constraint failed (adjust if needed)
+         return res.status(409).json({ message: 'Project creation failed due to conflict.' });
+    }
+    res.status(500).json({ message: 'Internal server error while creating project.' }); // Generic message for other errors
   }
 };
 
@@ -44,12 +51,121 @@ exports.createProject = async (req, res) => {
  */
 exports.getProjectsByWorkspace = async (req, res) => {
   try {
-    // Extract workspace ID from JWT
+    // Extract workspace ID from JWT/header
     const { workspaceId } = req.userData;
+    if (!workspaceId) {
+        return res.status(400).json({ message: 'Workspace ID is missing.' });
+    }
+
     const projects = await Project.findByWorkspace(workspaceId);
-    res.status(200).json(projects);
+    res.status(200).json(projects || []); // Return empty array if null/undefined
   } catch (error) {
     console.error("Error fetching projects:", error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Internal server error while fetching projects.' });
   }
 };
+
+/**
+ * Fetches details for a single project by its ID.
+ * Ensures the project belongs to the user's current workspace.
+ */
+exports.getProjectById = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const { workspaceId } = req.userData; // Get workspaceId from authenticated user data
+
+        if (!workspaceId) {
+            return res.status(400).json({ message: 'Workspace ID is missing.' });
+        }
+
+        // Call a model function to find the project by ID *and* workspaceId
+        const project = await Project.findByIdAndWorkspace(projectId, workspaceId);
+
+        if (!project) {
+            // If project doesn't exist or doesn't belong to the user's workspace
+            return res.status(404).json({ message: 'Project not found in this workspace.' });
+        }
+
+        // Return the found project details
+        res.status(200).json(project);
+
+    } catch (error) {
+        console.error(`Error fetching project ${req.params.projectId}:`, error);
+        res.status(500).json({ message: 'Internal server error while fetching project details.' });
+    }
+};
+
+/**
+ * Updates an existing project. (NEW FUNCTION)
+ * Ensures the project belongs to the user's current workspace.
+ */
+exports.updateProject = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { name, description } = req.body;
+    const { userId, workspaceId } = req.userData; // For security check
+
+    if (!name) {
+      return res.status(400).json({ message: 'Project name is required.' });
+    }
+    if (!workspaceId) {
+        return res.status(400).json({ message: 'Workspace ID is missing.' });
+    }
+
+    // Security Check: Find the project first to ensure it's in their workspace
+    const project = await Project.findByIdAndWorkspace(projectId, workspaceId);
+    if (!project) {
+         return res.status(404).json({ message: 'Project not found in this workspace.' });
+    }
+    
+    // TODO: Add role-based check (e.g., only ADMIN or project creator (project.creatorId === userId))
+
+    // Call model to update
+    const updatedProject = await Project.update(projectId, { name, description });
+    res.status(200).json(updatedProject);
+    
+  } catch (error) {
+    console.error("Error updating project:", error);
+    res.status(500).json({ message: 'Internal server error while updating project' });
+  }
+};
+
+/**
+ * Deletes a project. (NEW FUNCTION)
+ * Ensures the project belongs to the user's current workspace.
+ */
+exports.deleteProject = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { userId, workspaceId } = req.userData; // For security check
+
+     if (!workspaceId) {
+        return res.status(400).json({ message: 'Workspace ID is missing.' });
+    }
+
+    // Security Check: Find the project first to ensure it's in their workspace
+    const project = await Project.findByIdAndWorkspace(projectId, workspaceId);
+    if (!project) {
+         return res.status(404).json({ message: 'Project not found in this workspace.' });
+    }
+
+    // TODO: Add role-based check (e.g., only ADMIN or project creator (project.creatorId === userId))
+
+    // Call model to delete
+    await Project.delete(projectId);
+
+    // Send analytics event (optional)
+    sendAnalyticsEvent({
+      eventType: 'PROJECT_DELETED', // Make sure analytics service handles this
+      workspaceId,
+      userId,
+      payload: { projectId },
+    });
+
+    res.status(204).send(); // 204 No Content - standard for successful delete
+  } catch (error) {
+    console.error("Error deleting project:", error);
+    res.status(500).json({ message: 'Internal server error while deleting project' });
+  }
+};
+

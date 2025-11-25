@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client'); // Import Prisma namespace for error handling
 const prisma = new PrismaClient();
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
@@ -38,7 +38,7 @@ const Workspace = {
       });
 
       if (!inviterMembership || inviterMembership.role !== 'ADMIN') {
-        throw new Error('Only admins can invite users.');
+        throw new Error('Forbidden: Only admins can invite users.');
       }
 
       const existingUser = await prisma.user.findUnique({ where: { email: inviteeEmail } });
@@ -47,7 +47,7 @@ const Workspace = {
           where: { userId: existingUser.id, workspaceId },
         });
         if (isAlreadyMember) {
-          throw new Error('User is already a member of this workspace.');
+          throw new Error('Conflict: User is already a member of this workspace.');
         }
       }
 
@@ -79,7 +79,7 @@ const Workspace = {
         });
 
         if (!invitation || invitation.expiresAt < new Date()) {
-          throw new Error('Invalid or expired invitation token.');
+          throw new Error('Not Found: Invalid or expired invitation token.');
         }
 
         const existingUser = await tx.user.findUnique({
@@ -87,7 +87,7 @@ const Workspace = {
         });
 
         if (existingUser) {
-          throw new Error('An account with this email already exists.');
+          throw new Error('Conflict: An account with this email already exists.');
         }
 
         const passwordHash = await bcrypt.hash(password, 12);
@@ -121,38 +121,27 @@ const Workspace = {
   },
 
   /**
-   * Finds all workspaces a specific user is a member of. (NEW FUNCTION)
-   * @param {string} userId - The ID of the user.
-   * @returns {Promise<Array>} A list of workspace memberships, including workspace details and user's role.
+   * Finds all workspaces a specific user is a member of.
    */
   async findUserWorkspaces(userId) {
     try {
-      // Find all entries in WorkspaceMember table for the given userId
       const memberships = await prisma.workspaceMember.findMany({
         where: { userId: userId },
-        // Use 'include' to automatically fetch the related Workspace data
         include: {
-          workspace: { // Fetch details of the workspace itself
-            select: { // Select only the necessary workspace fields
+          workspace: {
+            select: {
               id: true,
               name: true,
               createdAt: true,
-              // Optionally include member count later: _count: { select: { members: true } }
             }
           }
         },
-        // Optionally order the results
         orderBy: {
             workspace: {
-                createdAt: 'asc' // Show oldest workspaces first
+                createdAt: 'asc'
             }
         }
       });
-      // The result will be an array like:
-      // [
-      //   { userId: '...', workspaceId: 'ws1', role: 'ADMIN', workspace: { id: 'ws1', name: 'My First WS' } },
-      //   { userId: '...', workspaceId: 'ws2', role: 'TEAM_MEMBER', workspace: { id: 'ws2', name: 'Another WS' } }
-      // ]
       return memberships;
     } catch (error) {
       console.error("Error finding user workspaces:", error);
@@ -160,6 +149,142 @@ const Workspace = {
     }
   },
 
+  /**
+   * Updates a workspace's details. (NEWLY ADDED)
+   * Only allows ADMINs of the workspace.
+   */
+  async update(workspaceId, userId, updateData) {
+    try {
+      // Step 1: Verify the user is an ADMIN of this workspace.
+      const membership = await prisma.workspaceMember.findUnique({
+        where: { userId_workspaceId: { userId, workspaceId } },
+      });
+
+      if (!membership) {
+        throw new Error('Not Found: Workspace not found or user is not a member.');
+      }
+      if (membership.role !== 'ADMIN') {
+        throw new Error('Forbidden: Only admins can update the workspace.');
+      }
+
+      // Step 2: Update the workspace.
+      const updatedWorkspace = await prisma.workspace.update({
+        where: { id: workspaceId },
+        data: updateData, // e.g., { name: updateData.name }
+      });
+
+      return updatedWorkspace;
+    } catch (error) {
+      console.error("Error updating workspace:", error);
+       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+           throw new Error('Not Found: Workspace not found.');
+       }
+      throw error;
+    }
+  },
+
+
+  async delete(workspaceId, userId) {
+    try {
+      // Step 1: Verify the user is an ADMIN of this workspace.
+      const membership = await prisma.workspaceMember.findUnique({
+        where: { userId_workspaceId: { userId, workspaceId } },
+      });
+
+      if (!membership) {
+         throw new Error('Not Found: Workspace not found or user is not a member.');
+      }
+       if (membership.role !== 'ADMIN') {
+        throw new Error('Forbidden: Only admins can delete the workspace.');
+      }
+
+      // Step 2: Delete the workspace. (onDelete: Cascade handles related records)
+      await prisma.workspace.delete({
+        where: { id: workspaceId },
+      });
+
+    } catch (error) {
+      console.error("Error deleting workspace:", error);
+       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+           throw new Error('Not Found: Workspace not found.');
+       }
+      throw error;
+    }
+  },
+
+  /**
+   * Gets the member count for a specific workspace, after verifying user membership. (NEWLY ADDED)
+   * @param {string} workspaceId - The ID of the workspace.
+   * @param {string} userId - The ID of the user requesting the count.
+   * @returns {Promise<object>} An object containing the count, e.g., { count: 5 }.
+   */
+  async getMemberCount(workspaceId, userId) {
+    try {
+      // Step 1: Verify the user is a member of this workspace.
+      const membership = await prisma.workspaceMember.findUnique({
+        where: { userId_workspaceId: { userId, workspaceId } },
+      });
+
+      if (!membership) {
+        // If user is not a member, they are not allowed to get the count
+        throw new Error('Forbidden: You are not a member of this workspace.');
+      }
+
+      // Step 2: Get the count of all members in that workspace.
+      const count = await prisma.workspaceMember.count({
+        where: { workspaceId: workspaceId },
+      });
+
+      return { count };
+    } catch (error) {
+      console.error("Error getting member count:", error);
+      throw error;
+    }
+  },
+
+  async getMembers(workspaceId, requestingUserId) {
+    try {
+      // Step 1: Verify the requesting user is a member of this workspace.
+      const membership = await prisma.workspaceMember.findUnique({
+        where: { userId_workspaceId: { userId: requestingUserId, workspaceId } },
+      });
+
+      if (!membership) {
+        throw new Error('Forbidden: You are not a member of this workspace.');
+      }
+
+      // Step 2: Fetch all members of the workspace, including user details.
+      const members = await prisma.workspaceMember.findMany({
+        where: { workspaceId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: {
+            role: 'asc' // Show ADMINs first (alphabetically 'ADMIN' comes before 'TEAM_MEMBER')
+        }
+      });
+
+      // Step 3: Format the data for the frontend.
+      return members.map(m => ({
+        userId: m.userId,
+        role: m.role,
+        fullName: m.user.fullName,
+        email: m.user.email,
+      }));
+
+    } catch (error) {
+      console.error("Error getting workspace members:", error);
+      throw error;
+    }
+  },
+
 };
 
 module.exports = Workspace;
+

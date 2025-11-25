@@ -1,22 +1,22 @@
 const axios = require('axios');
 
 /**
- * Notification service ko ek event bhejta hai.
- * @param {string} userId - Jis user ko notification bhejna hai uski ID.
- * @param {object} event - Event ka data (jaise type aur message).
+ * Sends an event to the notification service.
+ * @param {string} userId - The ID of the user to whom the notification should be sent.
+ * @param {object} event - The event data (such as type and message).
  */
 const sendNotification = async (userId, event) => {
   try {
-    // .env file se URL aur secret key ko padho
+    // Read URL and secret key from the .env file
     const serviceUrl = process.env.NOTIFICATION_SERVICE_URL;
     const apiKey = process.env.INTERNAL_API_KEY;
 
     if (!serviceUrl || !apiKey) {
-      console.error("Notification service URL ya API Key configure nahi hai.");
+      console.error("Notification service URL or API Key is not configured.");
       return;
     }
 
-    // Axios ka use karke notification service ke internal endpoint ko call karo
+    // Use Axios to call the internal endpoint of the notification service
     await axios.post(
       `${serviceUrl}/api/notify`,
       {
@@ -24,18 +24,18 @@ const sendNotification = async (userId, event) => {
         event,
       },
       {
-        // Yahan par hum woh special header set kar rahe hain
+        // Set the special internal header
         headers: {
           'x-internal-api-key': apiKey,
         },
       }
     );
 
-    console.log(`Notification event user ${userId} ke liye सफलतापूर्वक भेजा gaya.`);
+    console.log(`Notification event sent successfully for user ${userId}.`);
   } catch (error) {
-    // Agar notification service band hai ya koi error aata hai, to hum use log karenge
-    // lekin main application ko crash nahi hone denge.
-    console.error(`Notification bhejne mein error aaya: ${error.message}`);
+    // If the notification service is down or an error occurs, log it
+    // but don’t crash the main application.
+    console.error(`Error while sending notification: ${error.message}`);
   }
 };
 

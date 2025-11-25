@@ -18,6 +18,18 @@ const Comment = {
       orderBy: { createdAt: 'asc' },
     });
   },
+  
+  async findById(commentId) {
+    return prisma.comment.findUnique({
+      where: { id: commentId }
+    });
+  },
+
+  async delete(commentId) {
+    return prisma.comment.delete({
+      where: { id: commentId }
+    });
+  }
 };
 
 module.exports = Comment;

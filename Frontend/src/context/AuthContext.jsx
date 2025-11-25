@@ -3,94 +3,128 @@ import { getToken, saveToken, removeToken } from '../utils/tokenManager';
 import { jwtDecode } from 'jwt-decode'; // Import the decoder
 import toast from 'react-hot-toast'; // Import react-hot-toast
 
+// Key for storing active workspace in localStorage
+const ACTIVE_WORKSPACE_KEY = 'tasksphere_active_workspace';
+
 // 1. Create the context
 const AuthContext = createContext(null);
 
 // 2. Create the Provider component
 export const AuthProvider = ({ children }) => {
-  const [authToken, setAuthToken] = useState(getToken()); // Initial state from localStorage
-  const [currentUser, setCurrentUser] = useState(null); // Initially no user
-  const [isLoading, setIsLoading] = useState(true); // To check initial token state
+  const [authToken, setAuthToken] = useState(getToken()); // Token from localStorage
+  const [currentUser, setCurrentUser] = useState(null); // User details from token
+  const [activeWorkspace, setActiveWorkspaceState] = useState(null); // Active workspace { id, name }
+  const [isLoading, setIsLoading] = useState(true); // Initial auth check status
 
-  // Function to decode token and set user state - UPDATED
+  // Function to decode token and set user state
   const setUserFromToken = (token) => {
     if (token) {
       try {
-        // Decode token to get user data
-        const decoded = jwtDecode(token.replace('Bearer ', '')); // Remove 'Bearer ' prefix
-        
-        // --- UPDATE HERE ---
-        // Extract fullName from the decoded token
+        const decoded = jwtDecode(token.replace('Bearer ', ''));
         setCurrentUser({
           id: decoded.userId,
           email: decoded.email,
-          fullName: decoded.fullName, // Add fullName here
-          // Add role and workspaceId if they exist in your token payload
-          ...(decoded.role && { role: decoded.role }),
-          ...(decoded.workspaceId && { workspaceId: decoded.workspaceId }),
+          fullName: decoded.fullName,
+          // Role/Workspace from initial token might be outdated or absent after schema change
         });
-        setAuthToken(token); // Ensure token state is updated
-        return true; // Indicate success
+        setAuthToken(token);
+        return true;
       } catch (error) {
         console.error("Invalid token:", error);
-        removeToken(); // Remove invalid token
+        removeToken();
         setCurrentUser(null);
         setAuthToken(null);
-        return false; // Indicate failure
+        setActiveWorkspaceState(null); // Clear workspace on bad token
+        localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+        return false;
       }
     } else {
       setCurrentUser(null);
       setAuthToken(null);
+      setActiveWorkspaceState(null); // Clear workspace if no token
+      localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
       return false;
     }
   };
 
-  // 3. useEffect for initial load check
+  // 3. useEffect for initial load check (Token and Active Workspace)
   useEffect(() => {
     const initialToken = getToken();
-    setUserFromToken(initialToken);
-    setIsLoading(false); // Finished initial check
-  }, []); // Empty array ensures this runs only once on mount
+    const tokenIsValid = setUserFromToken(initialToken); // Set user based on token validity
 
-  // 4. Login function - Includes toast
-  const login = (token) => {
-    saveToken(token); // Save to localStorage
-    const success = setUserFromToken(token); // Decode and set state
-    if (success) {
-      toast.success('Login successful!'); // Show success toast
+    // If token was valid, try loading active workspace from localStorage
+    if (tokenIsValid) {
+        const savedWorkspace = localStorage.getItem(ACTIVE_WORKSPACE_KEY);
+        if (savedWorkspace) {
+            try {
+                setActiveWorkspaceState(JSON.parse(savedWorkspace));
+            } catch (e) {
+                console.error("Failed to parse saved workspace:", e);
+                localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+            }
+        }
     }
-    return success; // Return true/false based on token validity
+    setIsLoading(false); // Finished initial check
+  }, []); // Run only once on mount
+
+  // 4. Login function
+  const login = (token) => {
+    saveToken(token);
+    const success = setUserFromToken(token);
+    if (success) {
+      toast.success('Login successful!');
+      // Clear any previously selected workspace on new login
+      localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+      setActiveWorkspaceState(null);
+    }
+    return success;
   };
 
-  // 5. Logout function - Includes toast
+  // 5. Logout function
   const logout = () => {
-    removeToken(); // Remove from localStorage
-    setCurrentUser(null); // Reset user state
-    setAuthToken(null); // Reset token state
-    toast.success('Logout successful!'); // Show success toast
-    // Optionally redirect to login page after a short delay
-    // setTimeout(() => window.location.href = '/login', 500); 
+    removeToken();
+    setCurrentUser(null);
+    setAuthToken(null);
+    setActiveWorkspaceState(null); // Clear active workspace on logout
+    localStorage.removeItem(ACTIVE_WORKSPACE_KEY); // Remove from storage
+    toast.success('Logout successful!');
   };
 
-  // 6. Value provided by the context
+  // --- NEW FUNCTION ---
+  // 6. Function to set the active workspace
+  const setActiveWorkspace = (workspace) => {
+      if (workspace && workspace.id && workspace.name) {
+          setActiveWorkspaceState(workspace);
+          localStorage.setItem(ACTIVE_WORKSPACE_KEY, JSON.stringify(workspace)); // Save to localStorage
+          console.log("Active workspace set:", workspace);
+      } else {
+          console.error("Attempted to set invalid workspace:", workspace);
+          // Optionally clear it if invalid data is passed
+          // setActiveWorkspaceState(null);
+          // localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+      }
+  };
+
+  // 7. Value provided by the context
   const value = {
     authToken,
     currentUser,
-    isAuthenticated: !!authToken, // True if authToken is not null/empty
-    isLoading, // To know if initial check is done
+    activeWorkspace, // Expose active workspace
+    isAuthenticated: !!authToken,
+    isLoading,
     login,
     logout,
+    setActiveWorkspace, // Expose the setter function
   };
 
-  // Render children only after initial loading is complete
   return (
     <AuthContext.Provider value={value}>
-      {!isLoading && children} 
+      {!isLoading && children}
     </AuthContext.Provider>
   );
 };
 
-// 7. Custom hook for easy consumption
+// 8. Custom hook remains the same
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

@@ -1,146 +1,195 @@
-    import React, { useEffect, useState } from 'react';
-    import { Link } from 'react-router-dom'; // Import Link for project links
-    import { useAuth } from '../context/AuthContext';
-    // Import API functions
-    import { getProjects } from '../api/taskService';
-    import { getDashboardStats } from '../api/analyticsService';
-    import { PlusCircle, AlertCircle, Loader2 } from 'lucide-react'; // Import more icons
-    import CreateProjectModal from '../components/projects/CreateProjectModal'; // Import the modal
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+// Import API functions
+import { getProjects } from '../api/taskService';
+import { getDashboardStats } from '../api/analyticsService';
+import { getWorkspaceMemberCount } from '../api/authService';
+import { PlusCircle, AlertCircle, Loader2, UserPlus } from 'lucide-react'; // UserPlus icon wapas laye
+import CreateProjectModal from '../components/projects/CreateProjectModal';
+import InviteMemberModal from '../components/workspaces/InviteMemberModal'; // Invite Modal import karein
 
-    /**
-     * DashboardPage
-     * The main page displayed after a user logs in.
-     * Fetches and displays projects and analytics stats. Allows project creation.
-     */
-    const DashboardPage = () => {
-        const { currentUser } = useAuth(); // Get current user info from context
-        const [projects, setProjects] = useState([]); // State for projects
-        const [stats, setStats] = useState(null); // State for analytics stats
-        const [isLoading, setIsLoading] = useState(true); // Start in loading state
-        const [error, setError] = useState(''); // State for error messages
-        const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); // State for modal visibility
+// --- IMPORT REUSABLE DASHBOARD COMPONENTS ---
+import TaskTrendChart from '../components/dashboard/TaskTrendChart';
+import StatCard from '../components/dashboard/StatCard';
 
-        // Function to fetch data
-        const fetchData = async () => {
-            setIsLoading(true);
-            setError('');
-            try {
-                // Fetch projects and stats in parallel
-                const [projectData, statsData] = await Promise.all([
-                    getProjects(), // Fetch projects from taskService
-                    getDashboardStats() // Fetch stats from analyticsService
-                ]);
-                setProjects(projectData || []); // Ensure projects is always an array
-                setStats(statsData);
-            } catch (err) {
-                console.error("Failed to fetch dashboard data:", err);
-                setError(err.message || 'Could not load dashboard data.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
+/**
+ * DashboardPage
+ * Fetches and displays projects, analytics, and team member count.
+ * Includes functionality to Create Projects and Invite Members.
+ */
+const DashboardPage = () => {
+    const { currentUser, activeWorkspace } = useAuth();
+    const [projects, setProjects] = useState([]);
+    const [stats, setStats] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
+    
+    // Modal States
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false); // Invite modal state wapas add kiya
 
+    // Function to fetch data for the active workspace
+    const fetchData = async () => {
+        if (!activeWorkspace?.id) {
+            setIsLoading(false);
+            return;
+        }
+        setIsLoading(true);
+        setError('');
+        try {
+            const [projectData, statsData, memberCountData] = await Promise.all([
+                getProjects(), 
+                getDashboardStats(), 
+                getWorkspaceMemberCount(activeWorkspace.id) 
+            ]);
+            
+            setProjects(projectData || []);
+            setStats({ 
+                ...statsData, 
+                memberCount: memberCountData.count 
+            }); 
+            
+        } catch (err) {
+            console.error(`Failed to fetch dashboard data:`, err);
+            setError(err.message || 'Could not load dashboard data.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-        // useEffect hook to fetch data when the component mounts
-        useEffect(() => {
-            fetchData();
-        }, []); // Empty dependency array ensures this runs only once on mount
+    useEffect(() => {
+        fetchData();
+    }, [activeWorkspace]); 
 
-        // Callback function for when a new project is created in the modal
-        const handleProjectCreated = (newProject) => {
-            // Option 1: Add project directly to state (simpler)
-            setProjects(prevProjects => [...prevProjects, newProject]);
-            // Option 2: Refetch all data (ensures consistency if stats change)
-            // fetchData(); 
-        };
+    const handleProjectCreated = (newProject) => {
+        setProjects(prevProjects => [...prevProjects, newProject]);
+        getDashboardStats()
+            .then(statsData => setStats(prevStats => ({...prevStats, ...statsData})))
+            .catch(err => console.error("Failed to refetch stats:", err));
+    };
 
+    if (isLoading) {
+         return (
+            <div className="flex justify-center items-center py-10">
+                <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+                <span className="ml-3 text-gray-600">Loading dashboard...</span>
+            </div>
+         );
+    }
+
+    if (error) {
+         return (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative flex items-center gap-2" role="alert">
+                <AlertCircle className="h-5 w-5"/>
+                <span className="block sm:inline">Error: {error}</span>
+                 {!activeWorkspace?.id && (
+                     <Link to="/workspaces" className="ml-4 font-medium text-red-800 underline">Select Workspace</Link>
+                 )}
+            </div>
+         );
+    }
+
+    if (!activeWorkspace?.id) {
         return (
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-                        {/* UPDATED: Prioritize fullName over email */}
-                        Welcome back, {currentUser?.fullName || currentUser?.email || 'User'}!
-                    </h1>
-                    {/* Create Project Button */}
-                    <button 
-                        onClick={() => setIsCreateModalOpen(true)} // Open the modal on click
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
-                        <PlusCircle className="h-5 w-5" />
-                        Create Project
-                    </button>
+            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                <p className="mb-4">Please select a workspace to view the dashboard.</p>
+                <Link to="/workspaces" className="text-indigo-600 hover:underline">Go to Workspaces</Link>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 truncate">
+                    {activeWorkspace.name}
+                </h1>
+                
+                {/* Action Buttons Container */}
+                <div className="flex gap-3">
+                    {/* --- INVITE MEMBER BUTTON (RESTORED) --- */}
+                   {activeWorkspace?.role === 'ADMIN' && (
+                        <button
+                            onClick={() => setIsInviteModalOpen(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 border border-indigo-600 text-sm font-medium rounded-md shadow-sm hover:bg-indigo-50 transition flex-shrink-0"
+                        >
+                            <UserPlus className="h-5 w-5" />
+                            Invite Member
+                        </button>
+                    )}
+
+                   {activeWorkspace?.role === 'ADMIN' && (
+                        <button
+                            onClick={() => setIsCreateModalOpen(true)} 
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out flex-shrink-0"
+                        >
+                            <PlusCircle className="h-5 w-5" />
+                            Create Project
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Content Area */}
+            <>
+                {/* Analytics Stats Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <StatCard title="Total Projects" value={stats?.totalProjects} />
+                    <StatCard title="Active Tasks" value={stats?.activeTasks} />
+                    <StatCard title="Team Members" value={stats?.memberCount} /> 
+                    
+                    <StatCard title="Tasks Created (7 Days)" value={stats?.createdTasksLast7Days} />
+                    <StatCard title="Tasks Completed (7 Days)" value={stats?.completedTasksLast7Days} />
+                    <StatCard title="Total Completed" value={stats?.completedTasks} />
                 </div>
 
-                {/* Loading State */}
-                {isLoading && (
-                    <div className="flex justify-center items-center py-10">
-                        <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-                        <span className="ml-3 text-gray-600">Loading dashboard...</span>
-                    </div>
-                )}
+                {/* Task Completion Trend Chart */}
+                <div className="bg-white p-6 rounded-lg shadow mt-6">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                        Task Completion Trend (Last 7 Days)
+                    </h2>
+                    <TaskTrendChart data={stats?.taskTrendData} />
+                </div>
 
-                {/* Error State */}
-                {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative flex items-center gap-2" role="alert">
-                        <AlertCircle className="h-5 w-5"/>
-                        <span className="block sm:inline">Error: {error}</span>
-                    </div>
-                )}
+                {/* Projects List Section */}
+                <div className="bg-white p-6 rounded-lg shadow mt-6">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Projects in this Workspace</h2>
+                    {projects.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {projects.map(project => (
+                                <Link
+                                    to={`/project/${project.id}`}
+                                    key={project.id}
+                                    className="block p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-indigo-500 transition duration-150 ease-in-out"
+                                >
+                                    <h3 className="font-medium text-gray-900 truncate">{project.name}</h3>
+                                    <p className="text-sm text-gray-500 mt-1 truncate">{project.description || 'No description'}</p>
+                                </Link>
+                            ))}
+                         </div>
+                    ) : (
+                        <p className="text-gray-500 text-center py-4">No projects found. Click "Create Project" to get started!</p>
+                    )}
+                </div>
+            </>
 
-                {/* Content Area - Displays when not loading and no error */}
-                {!isLoading && !error && (
-                    <>
-                        {/* Analytics Stats Section */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <StatCard title="Total Projects" value={stats?.totalProjects} />
-                            <StatCard title="Active Tasks" value={stats?.activeTasks} />
-                            <StatCard title="Completed Tasks" value={stats?.completedTasks} />
-                            <StatCard title="Team Members" value={'-'} /> {/* Placeholder */}
-                        </div>
+            {/* Modals */}
+            <CreateProjectModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onProjectCreated={handleProjectCreated}
+            />
+            
+            {/* --- INVITE MODAL (RESTORED) --- */}
+            <InviteMemberModal 
+                isOpen={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+                workspaceId={activeWorkspace.id}
+            />
+        </div>
+    );
+};
 
-                        {/* Projects List Section */}
-                        <div className="bg-white p-6 rounded-lg shadow mt-6">
-                            <h2 className="text-xl font-semibold text-gray-800 mb-4">Your Projects</h2>
-                            {projects.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {projects.map(project => (
-                                        <Link 
-                                            to={`/project/${project.id}`} 
-                                            key={project.id}
-                                            className="block p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-indigo-500 transition duration-150 ease-in-out"
-                                        >
-                                            <h3 className="font-medium text-gray-900 truncate">{project.name}</h3>
-                                            <p className="text-sm text-gray-500 mt-1 truncate">{project.description || 'No description'}</p>
-                                        </Link>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-gray-500 text-center py-4">You haven't created any projects yet. Click "Create Project" to get started!</p>
-                            )}
-                        </div>
-                    </>
-                )}
-
-                {/* Create Project Modal */}
-                <CreateProjectModal 
-                    isOpen={isCreateModalOpen}
-                    onClose={() => setIsCreateModalOpen(false)}
-                    onProjectCreated={handleProjectCreated} // Pass the callback
-                />
-            </div>
-        );
-    };
-
-    // Simple reusable component for Stat Cards
-    const StatCard = ({ title, value }) => {
-        return (
-            <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 truncate">{title}</h3>
-                <p className="mt-1 text-3xl font-semibold text-gray-900">{value ?? '-'}</p>
-            </div>
-        );
-    };
-
-
-    export default DashboardPage;
-
+export default DashboardPage;

@@ -13,7 +13,7 @@
     "dev:gateway": "cd api-gateway && npm run dev",
     "//": "--- Concurrent Start Script ---",
     "start:backend": "concurrently \"npm:dev:auth\" \"npm:dev:task\" \"npm:dev:notify\" \"npm:dev:analytics\" \"npm:dev:file\" \"npm:dev:gateway\""
-  },
+  }, 
   "keywords": [
     "microservices",
     "backend"

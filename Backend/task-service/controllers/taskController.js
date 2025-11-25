@@ -1,31 +1,37 @@
 const Task = require('../models/taskModel');
 const { sendNotification } = require('../utils/notificationClient');
-// Import Analytics client
 const { sendAnalyticsEvent } = require('../utils/analyticsClient');
 
 /**
- * Creates a new task and sends notifications/analytics events.
+ * Creates a new task.
+ * SECURITY: Only ADMINs can create tasks.
  */
 exports.createTask = async (req, res) => {
   try {
-    const { title, description, projectId, assigneeId } = req.body;
-    // Extract creator ID and workspace ID from JWT
+    // 1. Check User Role
+    const { role } = req.userData;
+    if (role !== 'ADMIN') {
+        return res.status(403).json({ message: 'Forbidden: Only Admins can create new tasks.' });
+    }
+
+    // Get assigneeIds array from request
+    const { title, description, projectId, assigneeIds } = req.body;
     const { userId, workspaceId } = req.userData;
 
     if (!title || !projectId) {
       return res.status(400).json({ message: 'Title and Project ID are required.' });
     }
 
+    // Pass the array to the model
     const newTask = await Task.create({
       title,
       description,
       projectId,
       creatorId: userId,
-      assigneeId,
+      assigneeIds: Array.isArray(assigneeIds) ? assigneeIds : [], // Ensure it's an array
     });
 
-    // --- ANALYTICS LOGIC ---
-    // Send event for new task creation
+    // Analytics
     sendAnalyticsEvent({
       eventType: 'TASK_CREATED',
       workspaceId,
@@ -33,14 +39,16 @@ exports.createTask = async (req, res) => {
       payload: { taskId: newTask.id, projectId: newTask.projectId },
     });
 
-    // --- NOTIFICATION LOGIC ---
-    // If a user was assigned during creation, send them a notification
-    if (assigneeId) {
-      sendNotification(assigneeId, {
-        type: 'TASK_ASSIGNED',
-        message: `You have been assigned a new task: "${newTask.title}"`,
-        payload: { taskId: newTask.id, projectId: newTask.projectId },
-      });
+    // --- NOTIFICATION LOGIC FOR MULTIPLE USERS ---
+    // Loop through all assignee IDs and send a notification to each
+    if (newTask.assigneeIds && newTask.assigneeIds.length > 0) {
+        newTask.assigneeIds.forEach(assigneeId => {
+            sendNotification(assigneeId, {
+                type: 'TASK_ASSIGNED',
+                message: `You have been assigned a new task: "${newTask.title}"`,
+                payload: { taskId: newTask.id, projectId: newTask.projectId },
+            });
+        });
     }
 
     res.status(201).json(newTask);
@@ -50,39 +58,61 @@ exports.createTask = async (req, res) => {
   }
 };
 
-/**
- * Fetches all tasks for a specific project.
- */
 exports.getTasksForProject = async (req, res) => {
   try {
     const { projectId } = req.params;
     const tasks = await Task.findByProject(projectId);
     res.status(200).json(tasks);
   } catch (error) {
-    console.error("Error fetching tasks:", error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 /**
- * Updates an existing task and sends necessary events.
+ * Updates an existing task.
+ * Supports updating multiple assignees.
  */
 exports.updateTask = async (req, res) => {
   try {
     const { taskId } = req.params;
-    const { title, description, status, assigneeId } = req.body;
-    const { userId, workspaceId } = req.userData;
+    // Get assigneeIds array
+    const { title, description, status, assigneeIds } = req.body;
+    const { userId, workspaceId, role } = req.userData;
 
-    // Fetch old task data to compare
     const oldTask = await Task.findById(taskId);
     if (!oldTask) {
       return res.status(404).json({ message: "Task not found." });
     }
 
-    const updatedTask = await Task.update(taskId, { title, description, status, assigneeId });
+    // --- SECURITY CHECK START ---
+    if (role !== 'ADMIN') {
+        // If user is NOT Admin, check if they are trying to change restricted fields
+        const isTitleChanged = title !== undefined && title !== oldTask.title;
+        const isDescChanged = description !== undefined && description !== oldTask.description;
+        
+        // Check if assigneeIds array changed
+        // We check if the new array is different from the old array
+        const oldIds = oldTask.assigneeIds || [];
+        const newIds = assigneeIds || [];
+        
+        // Simple check: are lengths different or does new list contain something old list doesn't?
+        const isAssigneeChanged = assigneeIds !== undefined && (
+            oldIds.length !== newIds.length || 
+            !newIds.every(id => oldIds.includes(id))
+        );
 
-    // --- ANALYTICS LOGIC ---
-    // If task status changed to 'COMPLETED', send an event
+        if (isTitleChanged || isDescChanged || isAssigneeChanged) {
+             return res.status(403).json({ 
+                 message: 'Forbidden: Team members can only update the task status.' 
+             });
+        }
+    }
+    // --- SECURITY CHECK END ---
+
+    // Update task with new array
+    const updatedTask = await Task.update(taskId, { title, description, status, assigneeIds });
+
+    // Analytics
     if (status === 'COMPLETED' && oldTask.status !== 'COMPLETED') {
       sendAnalyticsEvent({
         eventType: 'TASK_COMPLETED',
@@ -92,14 +122,20 @@ exports.updateTask = async (req, res) => {
       });
     }
 
-    // --- NOTIFICATION LOGIC ---
-    // If the task was reassigned to a new user, send notification
-    if (assigneeId && oldTask.assigneeId !== assigneeId) {
-      sendNotification(assigneeId, {
-        type: 'TASK_ASSIGNED',
-        message: `You have been assigned a task: "${updatedTask.title}"`,
-        payload: { taskId: updatedTask.id, projectId: updatedTask.projectId },
-      });
+    // --- NOTIFICATION LOGIC FOR NEW ASSIGNEES ---
+    if (assigneeIds && Array.isArray(assigneeIds)) {
+        const oldIds = oldTask.assigneeIds || [];
+        
+        // Find users who were NOT in the old list (newly assigned)
+        const newAssignees = assigneeIds.filter(id => !oldIds.includes(id));
+        
+        newAssignees.forEach(assigneeId => {
+            sendNotification(assigneeId, {
+                type: 'TASK_ASSIGNED',
+                message: `You have been assigned a task: "${updatedTask.title}"`,
+                payload: { taskId: updatedTask.id, projectId: updatedTask.projectId },
+            });
+        });
     }
 
     res.status(200).json(updatedTask);
@@ -109,11 +145,14 @@ exports.updateTask = async (req, res) => {
   }
 };
 
-/**
- * Deletes a task.
- */
 exports.deleteTask = async (req, res) => {
   try {
+    // 1. Check User Role
+    const { role } = req.userData;
+    if (role !== 'ADMIN') {
+        return res.status(403).json({ message: 'Forbidden: Only Admins can delete tasks.' });
+    }
+
     const { taskId } = req.params;
     await Task.delete(taskId);
     res.status(200).json({ message: 'Task deleted successfully.' });

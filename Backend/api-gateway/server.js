@@ -53,8 +53,8 @@ app.use('/api/auth', createProxy(process.env.AUTH_SERVICE_URL, '/api/auth'));
 app.use('/api/workspaces', createProxy(process.env.AUTH_SERVICE_URL, '/api/workspaces')); 
 
 // For other services, strip only '/api' (or adjust as needed based on their server.js)
-app.use('/api/projects', createProxy(process.env.TASK_SERVICE_URL, '/api/projects')); 
-app.use('/api/tasks', createProxy(process.env.TASK_SERVICE_URL, '/api/tasks')); 
+app.use('/api/projects', createProxy(process.env.TASK_SERVICE_URL, '/api')); 
+app.use('/api/tasks', createProxy(process.env.TASK_SERVICE_URL, '/api')); 
 app.use('/api/comments', createProxy(process.env.TASK_SERVICE_URL, '/api/comments')); 
 app.use('/api/analytics', createProxy(process.env.ANALYTICS_SERVICE_URL, '/api/analytics')); 
 app.use('/api/notify', createProxy(process.env.NOTIFICATION_SERVICE_URL, '/api/notify')); 

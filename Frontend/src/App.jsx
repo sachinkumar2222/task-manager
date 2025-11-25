@@ -7,8 +7,8 @@ import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx'; // Import the real DashboardPage
 import WorkspaceSelectionPage from './pages/WorkspaceSelectionPage.jsx'; // Import the new page
-// import AcceptInvitePage from './pages/AcceptInvitePage.jsx'; // Not built yet
-// import ProjectPage from './pages/ProjectPage.jsx'; // Not built yet
+import AcceptInvitePage from './pages/AcceptInvitePage.jsx'; 
+import ProjectPage from './pages/ProjectPage.jsx'; 
 // import NotFoundPage from './pages/NotFoundPage.jsx'; // Not built yet
 
 // Layouts
@@ -27,9 +27,7 @@ import { AuthProvider } from './context/AuthContext.jsx'; // Import the real Aut
  */
 function App() {
   // Placeholder components for routes/layouts not yet implemented
-  const PlaceholderProjectPage = () => <div>Project Page</div>; // Temporary Placeholder
   const PlaceholderNotFoundPage = () => <div>404 Not Found</div>; // Temporary Placeholder
-  const PlaceholderAcceptInvitePage = () => <div>Accept Invite Page</div>; // Temporary Placeholder
 
   return (
     // Use the real AuthProvider
@@ -42,7 +40,7 @@ function App() {
           <Route path="/" element={<PublicLayout />}>
             <Route index element={<LandingPage />} />
             {/* AcceptInvite route uses placeholder */}
-            <Route path="accept-invite" element={<PlaceholderAcceptInvitePage />} /> {/* Temp */}
+            <Route path="accept-invite" element={<AcceptInvitePage />} /> {/* Temp */}
           </Route>
 
           {/* --- Public Routes WITHOUT Layout (Full Screen) --- */}
@@ -66,7 +64,7 @@ function App() {
               {/* Routes using the AppLayout (Sidebar + Navbar) */}
               <Route element={<AppLayout />}>
                  <Route path="dashboard" element={<DashboardPage />} /> 
-                 <Route path="project/:projectId" element={<PlaceholderProjectPage />} /> {/* Still placeholder */}
+                 <Route path="project/:projectId" element={<ProjectPage />} /> {/* Still placeholder */}
                  {/* Add other protected routes like /settings here */}
               </Route>
            </Route>
