@@ -24,7 +24,7 @@ const KanbanColumn = ({ title, tasks = [], onTaskClick, onEditTask, onDeleteTask
 
     return (
         // Column container
-        <div className="flex flex-col w-72 md:w-80 bg-gray-100 rounded-lg shadow flex-shrink-0 h-fit">
+        <div className="flex flex-col w-72 md:w-80 bg-gray-100 dark:bg-gray-800/50 rounded-lg shadow flex-shrink-0 h-fit border border-transparent dark:border-gray-700">
             {/* Column Header */}
             <div className={`p-3 font-semibold text-sm rounded-t-lg ${headerColor} flex justify-between items-center`}>
                 <span>{title}</span>
@@ -47,11 +47,11 @@ const KanbanColumn = ({ title, tasks = [], onTaskClick, onEditTask, onDeleteTask
                         />
                     ))
                 ) : (
-                    <p className="text-sm text-gray-500 text-center py-4">No tasks in this column.</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No tasks in this column.</p>
                 )}
             </div>
             {/* --- END UPDATE --- */}
-            
+
         </div>
     );
 };

@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../config/prismaClient');
 
 const Project = {
   /**
@@ -18,8 +17,8 @@ const Project = {
         },
       });
     } catch (error) {
-       console.error("Error in Project.create:", error);
-       throw error; // Re-throw for controller to handle
+      console.error("Error in Project.create:", error);
+      throw error; // Re-throw for controller to handle
     }
   },
 
@@ -29,15 +28,51 @@ const Project = {
    * @returns {Promise<Array>} A list of project objects.
    */
   async findByWorkspace(workspaceId) {
-     try {
-        return prisma.project.findMany({
-          where: { workspaceId },
-          orderBy: { createdAt: 'desc' }, // Show newest projects first
-        });
-     } catch (error) {
-         console.error("Error in Project.findByWorkspace:", error);
-         throw error;
-     }
+    try {
+      return prisma.project.findMany({
+        where: { workspaceId },
+        include: {
+          _count: {
+            select: { tasks: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' }, // Show newest projects first
+      });
+    } catch (error) {
+      console.error("Error in Project.findByWorkspace FULL ERROR:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Finds projects in a workspace where the user has at least one task assigned.
+   * @param {string} workspaceId 
+   * @param {string} userId 
+   */
+  async findByWorkspaceAndUser(workspaceId, userId) {
+    try {
+      return prisma.project.findMany({
+        where: {
+          workspaceId,
+          tasks: {
+            some: {
+              assigneeIds: {
+                has: userId
+              }
+            }
+          }
+        },
+        include: {
+          _count: {
+            select: { tasks: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (error) {
+      console.error("Error in Project.findByWorkspaceAndUser:", error);
+      throw error;
+    }
   },
 
   /**
@@ -48,16 +83,16 @@ const Project = {
    */
   async findByIdAndWorkspace(projectId, workspaceId) {
     try {
-        return prisma.project.findFirst({
-            where: {
-                // Both conditions must be met
-                id: projectId,
-                workspaceId: workspaceId, 
-            },
-        });
+      return prisma.project.findFirst({
+        where: {
+          // Both conditions must be met
+          id: projectId,
+          workspaceId: workspaceId,
+        },
+      });
     } catch (error) {
-        console.error("Error in Project.findByIdAndWorkspace:", error);
-        throw error;
+      console.error("Error in Project.findByIdAndWorkspace:", error);
+      throw error;
     }
   },
 
@@ -95,6 +130,22 @@ const Project = {
       });
     } catch (error) {
       console.error("Error in Project.delete:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Counts the number of projects in a workspace.
+   * @param {string} workspaceId
+   * @returns {Promise<number>}
+   */
+  async countByWorkspace(workspaceId) {
+    try {
+      return await prisma.project.count({
+        where: { workspaceId },
+      });
+    } catch (error) {
+      console.error("Error in Project.countByWorkspace:", error);
       throw error;
     }
   },

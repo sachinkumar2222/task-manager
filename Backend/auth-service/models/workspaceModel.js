@@ -1,5 +1,5 @@
-const { PrismaClient, Prisma } = require('@prisma/client'); // Import Prisma namespace for error handling
-const prisma = new PrismaClient();
+const { prisma } = require('../config/prismaClient');
+const { Prisma } = require('@prisma/client'); // Import Prisma namespace for error handling
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
@@ -137,9 +137,9 @@ const Workspace = {
           }
         },
         orderBy: {
-            workspace: {
-                createdAt: 'asc'
-            }
+          workspace: {
+            createdAt: 'asc'
+          }
         }
       });
       return memberships;
@@ -176,9 +176,9 @@ const Workspace = {
       return updatedWorkspace;
     } catch (error) {
       console.error("Error updating workspace:", error);
-       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-           throw new Error('Not Found: Workspace not found.');
-       }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new Error('Not Found: Workspace not found.');
+      }
       throw error;
     }
   },
@@ -192,9 +192,9 @@ const Workspace = {
       });
 
       if (!membership) {
-         throw new Error('Not Found: Workspace not found or user is not a member.');
+        throw new Error('Not Found: Workspace not found or user is not a member.');
       }
-       if (membership.role !== 'ADMIN') {
+      if (membership.role !== 'ADMIN') {
         throw new Error('Forbidden: Only admins can delete the workspace.');
       }
 
@@ -205,9 +205,9 @@ const Workspace = {
 
     } catch (error) {
       console.error("Error deleting workspace:", error);
-       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-           throw new Error('Not Found: Workspace not found.');
-       }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new Error('Not Found: Workspace not found.');
+      }
       throw error;
     }
   },
@@ -266,7 +266,7 @@ const Workspace = {
           },
         },
         orderBy: {
-            role: 'asc' // Show ADMINs first (alphabetically 'ADMIN' comes before 'TEAM_MEMBER')
+          role: 'asc' // Show ADMINs first (alphabetically 'ADMIN' comes before 'TEAM_MEMBER')
         }
       });
 

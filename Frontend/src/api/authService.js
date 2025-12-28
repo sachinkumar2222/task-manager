@@ -52,13 +52,13 @@ export const acceptInvite = async (inviteData) => {
  * @returns {Promise<Array>} A list of workspace membership objects.
  */
 export const getUserWorkspaces = async () => {
-    try {
-        const response = await apiClient.get('/api/workspaces/mine');
-        return response.data;
-    } catch (error) {
-        console.error('Get User Workspaces API Error:', error.response?.data || error.message);
-        throw new Error(error.response?.data?.message || 'Failed to fetch workspaces.');
-    }
+  try {
+    const response = await apiClient.get('/api/workspaces/mine');
+    return response.data;
+  } catch (error) {
+    console.error('Get User Workspaces API Error:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to fetch workspaces.');
+  }
 };
 
 /**
@@ -84,14 +84,14 @@ export const createWorkspace = async (workspaceData) => {
  * @returns {Promise<object>} The updated workspace object { message, workspace }.
  */
 export const updateWorkspace = async (workspaceId, updateData) => {
-    try {
-        // Make a PATCH request to the specific workspace endpoint
-        const response = await apiClient.patch(`/api/workspaces/${workspaceId}`, updateData);
-        return response.data; // Return the success response { message, workspace }
-    } catch (error) {
-        console.error(`Update Workspace ${workspaceId} API Error:`, error.response?.data || error.message);
-        throw new Error(error.response?.data?.message || 'Failed to update workspace.');
-    }
+  try {
+    // Make a PATCH request to the specific workspace endpoint
+    const response = await apiClient.patch(`/api/workspaces/${workspaceId}`, updateData);
+    return response.data; // Return the success response { message, workspace }
+  } catch (error) {
+    console.error(`Update Workspace ${workspaceId} API Error:`, error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to update workspace.');
+  }
 };
 
 /**
@@ -101,44 +101,64 @@ export const updateWorkspace = async (workspaceId, updateData) => {
  * @returns {Promise<void>} Resolves on successful deletion.
  */
 export const deleteWorkspace = async (workspaceId) => {
-    try {
-        // Make a DELETE request to the specific workspace endpoint
-        await apiClient.delete(`/api/workspaces/${workspaceId}`);
-        // No content is returned on successful deletion (204 status)
-    } catch (error) {
-        console.error(`Delete Workspace ${workspaceId} API Error:`, error.response?.data || error.message);
-        throw new Error(error.response?.data?.message || 'Failed to delete workspace.');
-    }
+  try {
+    // Make a DELETE request to the specific workspace endpoint
+    await apiClient.delete(`/api/workspaces/${workspaceId}`);
+    // No content is returned on successful deletion (204 status)
+  } catch (error) {
+    console.error(`Delete Workspace ${workspaceId} API Error:`, error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to delete workspace.');
+  }
 };
 
 export const getWorkspaceMemberCount = async (workspaceId) => {
-    try {
-        // Make a GET request to the /members/count endpoint
-        // Note: apiClient sends the token, backend checkAuth verifies membership
-        const response = await apiClient.get(`/api/workspaces/${workspaceId}/members/count`);
-        return response.data; // Return { count: 5 }
-    } catch (error) {
-        console.error(`Get Member Count for ${workspaceId} API Error:`, error.response?.data || error.message);
-        throw new Error(error.response?.data?.message || 'Failed to fetch member count.');
-    }
+  try {
+    // Make a GET request to the /members/count endpoint
+    // Note: apiClient sends the token, backend checkAuth verifies membership
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/members/count`);
+    return response.data; // Return { count: 5 }
+  } catch (error) {
+    console.error(`Get Member Count for ${workspaceId} API Error:`, error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to fetch member count.');
+  }
 };
 
 export const getWorkspaceMembers = async (workspaceId) => {
-    try {
-        const response = await apiClient.get(`/api/workspaces/${workspaceId}/members`);
-        return response.data;
-    } catch (error) {
-        console.error(`Get Members for ${workspaceId} API Error:`, error.response?.data || error.message);
-        throw new Error(error.response?.data?.message || 'Failed to fetch workspace members.');
-    }
+  try {
+    const response = await apiClient.get(`/api/workspaces/${workspaceId}/members`);
+    return response.data;
+  } catch (error) {
+    console.error(`Get Members for ${workspaceId} API Error:`, error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to fetch workspace members.');
+  }
 };
 
 export const sendInvite = async (workspaceId, email) => {
-    try {
-        const response = await apiClient.post(`/api/workspaces/${workspaceId}/invite`, { email });
-        return response.data; 
-    } catch (error) {
-        console.error(`Send Invite API Error:`, error.response?.data || error.message);
-        throw new Error(error.response?.data?.message || 'Failed to send invitation.');
-    }
+  try {
+    const response = await apiClient.post(`/api/workspaces/${workspaceId}/invite`, { email });
+    return response.data;
+  } catch (error) {
+    console.error(`Send Invite API Error:`, error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to send invitation.');
+  }
+}
+
+
+/**
+ * Updates user profile including profile image.
+ * @param {FormData} formData - Form data containing fullName, password, profileImage
+ * @returns {Promise<object>} The updated user object.
+ */
+export const updateProfile = async (formData) => {
+  try {
+    const response = await apiClient.put('/api/auth/profile', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Update Profile API Error:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to update profile.');
+  }
 };

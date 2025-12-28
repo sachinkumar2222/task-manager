@@ -68,7 +68,7 @@ exports.login = async (req, res) => {
     const payload = {
       userId: user.id,
       email: user.email,
-      fullName: user.fullName, 
+      fullName: user.fullName,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -122,4 +122,63 @@ exports.acceptInvite = async (req, res) => {
     res.status(500).json({ message: 'Internal server error while accepting invitation.' });
   }
 };
-  
+
+/**
+ * Updates user profile including profile image.
+ */
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.userData.userId;
+    const { fullName, password, oldPassword } = req.body;
+    const updateData = {};
+
+    if (fullName) updateData.fullName = fullName;
+
+    if (password) {
+      if (!oldPassword) {
+        return res.status(400).json({ message: 'Please provide your old password to set a new one.' });
+      }
+
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found.' });
+      }
+
+      const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Old password is wrong.' });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
+      }
+      updateData.passwordHash = await bcrypt.hash(password, 12);
+    }
+
+    if (req.file) {
+      const cloudinary = require('../config/cloudinary');
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'tasksphere_profiles',
+          width: 300,
+          crop: "scale"
+        });
+        updateData.profileImage = result.secure_url;
+      } catch (uploadError) {
+        console.error('Cloudinary Upload Error:', uploadError);
+        return res.status(500).json({ message: 'Image upload failed.' });
+      }
+    }
+
+    const updatedUser = await User.update(userId, updateData);
+
+    res.status(200).json({
+      message: 'Profile updated successfully!',
+      user: updatedUser,
+    });
+
+  } catch (error) {
+    console.error('Update Profile Error:', error);
+    res.status(500).json({ message: 'Internal server error during profile update.' });
+  }
+};

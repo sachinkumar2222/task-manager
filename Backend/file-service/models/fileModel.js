@@ -1,26 +1,40 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const mongoose = require('mongoose');
 
-const File = {
-  /**
-   * Ek task se judi saari files ki list fetch karta hai.
-   * @param {string} taskId - Jis task ki files dhundni hain uski ID.
-   * @returns {Promise<Array>} Files ki ek array.
-   */
-  async findByTaskId(taskId) {
-    return prisma.file.findMany({
-      where: { taskId },
-      // Sirf zaroori fields hi select karein
-      select: {
-        id: true,
-        fileKey: true,
-        fileName: true,
-        fileType: true,
-        createdAt: true,
-        uploaderId: true,
-      }
-    });
-  }
-};
+const FileSchema = new mongoose.Schema({
+  filename: {
+    type: String,
+    required: true,
+  },
+  contentType: {
+    type: String,
+    required: true,
+  },
+  size: {
+    type: Number,
+    required: true,
+  },
+  // This field stores the actual file binary data
+  data: {
+    type: Buffer,
+    required: true,
+  },
+  taskId: {
+    type: String,
+    required: true,
+    index: true, // Index for faster queries by task
+  },
+  workspaceId: {
+    type: String,
+    required: true,
+  },
+  uploaderId: {
+    type: String,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
 
-module.exports = File;
+module.exports = mongoose.model('File', FileSchema);

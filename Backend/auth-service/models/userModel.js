@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../config/prismaClient');
 
 const User = {
 
@@ -28,6 +27,36 @@ const User = {
       });
     } catch (error) {
       console.error("Error finding user by email:", error);
+      throw error;
+    }
+  },
+
+  async findById(id) {
+    try {
+      return await prisma.user.findUnique({
+        where: { id },
+      });
+    } catch (error) {
+      console.error("Error finding user by id:", error);
+      throw error;
+    }
+  },
+
+  async update(userId, updateData) {
+    try {
+      return await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          profileImage: true,
+          createdAt: true,
+        },
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
       throw error;
     }
   },

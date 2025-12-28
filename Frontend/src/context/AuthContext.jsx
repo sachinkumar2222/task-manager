@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { getToken, saveToken, removeToken } from '../utils/tokenManager';
 import { jwtDecode } from 'jwt-decode'; // Import the decoder
 import toast from 'react-hot-toast'; // Import react-hot-toast
+import { io } from 'socket.io-client'; // Import socket.io-client
 
 // Key for storing active workspace in localStorage
 const ACTIVE_WORKSPACE_KEY = 'tasksphere_active_workspace';
@@ -54,18 +55,60 @@ export const AuthProvider = ({ children }) => {
 
     // If token was valid, try loading active workspace from localStorage
     if (tokenIsValid) {
-        const savedWorkspace = localStorage.getItem(ACTIVE_WORKSPACE_KEY);
-        if (savedWorkspace) {
-            try {
-                setActiveWorkspaceState(JSON.parse(savedWorkspace));
-            } catch (e) {
-                console.error("Failed to parse saved workspace:", e);
-                localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
-            }
+      const savedWorkspace = localStorage.getItem(ACTIVE_WORKSPACE_KEY);
+      if (savedWorkspace) {
+        try {
+          setActiveWorkspaceState(JSON.parse(savedWorkspace));
+        } catch (e) {
+          console.error("Failed to parse saved workspace:", e);
+          localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
         }
+      }
     }
     setIsLoading(false); // Finished initial check
   }, []); // Run only once on mount
+
+  // --- WEBSOCKET CONNECTION ---
+  useEffect(() => {
+    let socket;
+    if (authToken && currentUser) {
+      // Connect to the Notification Service (Port 4003 usually, or via Gateway /api/notify if proxied correctly)
+      // Since we are using a Gateway, we might need to connect directly to the service port or configure Gateway for WS.
+      // For simplicity/robustness in dev, we often connect directly to the service port if Gateway WS support is tricky.
+      // However, let's try connecting via the Gateway or the direct service URL.
+      // Assuming Notification Service is on 4003 based on backend Setup.
+
+      socket = io('http://localhost:4003', {
+        auth: { token: authToken },
+        transports: ['websocket'], // Force WebSocket to avoid polling 400 errors
+        withCredentials: true,
+      });
+
+      socket.on('connect', () => {
+        console.log('Connected to Notification Service:', socket.id);
+      });
+
+      socket.on('notification', (event) => {
+        console.log('New Notification:', event);
+        // Show Toast
+        toast(event.message, {
+          icon: '🔔',
+          duration: 5000,
+        });
+      });
+
+      socket.on('disconnect', () => {
+        console.log('Disconnected from Notification Service');
+      });
+    }
+
+    // Cleanup on unmount or token change
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [authToken, currentUser]);
 
   // 4. Login function
   const login = (token) => {
@@ -93,16 +136,16 @@ export const AuthProvider = ({ children }) => {
   // --- NEW FUNCTION ---
   // 6. Function to set the active workspace
   const setActiveWorkspace = (workspace) => {
-      if (workspace && workspace.id && workspace.name) {
-          setActiveWorkspaceState(workspace);
-          localStorage.setItem(ACTIVE_WORKSPACE_KEY, JSON.stringify(workspace)); // Save to localStorage
-          console.log("Active workspace set:", workspace);
-      } else {
-          console.error("Attempted to set invalid workspace:", workspace);
-          // Optionally clear it if invalid data is passed
-          // setActiveWorkspaceState(null);
-          // localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
-      }
+    if (workspace && workspace.id && workspace.name) {
+      setActiveWorkspaceState(workspace);
+      localStorage.setItem(ACTIVE_WORKSPACE_KEY, JSON.stringify(workspace)); // Save to localStorage
+      console.log("Active workspace set:", workspace);
+    } else {
+      console.error("Attempted to set invalid workspace:", workspace);
+      // Optionally clear it if invalid data is passed
+      // setActiveWorkspaceState(null);
+      // localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+    }
   };
 
   // 7. Value provided by the context
@@ -115,6 +158,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     setActiveWorkspace, // Expose the setter function
+    setCurrentUser, // Expose the setter for profile updates
   };
 
   return (

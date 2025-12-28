@@ -7,8 +7,13 @@ import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx'; // Import the real DashboardPage
 import WorkspaceSelectionPage from './pages/WorkspaceSelectionPage.jsx'; // Import the new page
-import AcceptInvitePage from './pages/AcceptInvitePage.jsx'; 
-import ProjectPage from './pages/ProjectPage.jsx'; 
+import AcceptInvitePage from './pages/AcceptInvitePage.jsx';
+import ProjectPage from './pages/ProjectPage.jsx';
+import ProjectsPage from './pages/ProjectsPage.jsx';
+import TasksPage from './pages/TasksPage.jsx'; // Import TasksPage
+import CalendarPage from './pages/CalendarPage.jsx'; // Import CalendarPage
+import NotificationPage from './pages/NotificationPage.jsx'; // Import Notification Page
+import SettingsPage from './pages/SettingsPage.jsx'; // Import Settings Page
 // import NotFoundPage from './pages/NotFoundPage.jsx'; // Not built yet
 
 // Layouts
@@ -17,7 +22,8 @@ import AppLayout from './components/layout/AppLayout.jsx'; // Import the real Ap
 
 // Helpers
 import ProtectedRoute from './ProtectedRoute.jsx'; // Import the real ProtectedRoute
-import { AuthProvider } from './context/AuthContext.jsx'; // Import the real AuthProvider
+import { AuthProvider } from './context/AuthContext.jsx';
+import { ProjectProvider } from './context/ProjectContext.jsx'; // Import ProjectProvider
 
 /**
  * App Component
@@ -33,46 +39,42 @@ function App() {
     // Use the real AuthProvider
     <AuthProvider>
       <BrowserRouter>
-        {/* Add Toaster for notifications */}
-        <Toaster position="top-right" />
-        <Routes>
-          {/* --- Public Routes WITH Layout (Header/Footer) --- */}
-          <Route path="/" element={<PublicLayout />}>
-            <Route index element={<LandingPage />} />
-            {/* AcceptInvite route uses placeholder */}
-            <Route path="accept-invite" element={<AcceptInvitePage />} /> {/* Temp */}
-          </Route>
+        <ProjectProvider> {/* Wrap with ProjectProvider */}
+          {/* Add Toaster for notifications */}
+          <Toaster position="top-right" />
+          <Routes>
+            {/* ... Routes ... */}
+            <Route path="/" element={<PublicLayout />}>
+              <Route index element={<LandingPage />} />
+              <Route path="accept-invite" element={<AcceptInvitePage />} />
+            </Route>
 
-          {/* --- Public Routes WITHOUT Layout (Full Screen) --- */}
-          <Route path="login" element={<LoginPage />} />
-          <Route path="signup" element={<SignupPage />} /> {/* Use the real component */}
+            <Route path="login" element={<LoginPage />} />
+            <Route path="signup" element={<SignupPage />} />
 
-
-          {/* --- Private/Protected Routes --- */}
-           <Route
-             element={
-               // Use the real ProtectedRoute component
-               <ProtectedRoute>
-                 {/* Outlet will render either WorkspaceSelectionPage or AppLayout based on path */}
-                 <Outlet /> 
-               </ProtectedRoute>
-             }
-           >
-              {/* Workspace Selection Page (No AppLayout needed here) */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <Outlet />
+                </ProtectedRoute>
+              }
+            >
               <Route path="/workspaces" element={<WorkspaceSelectionPage />} />
 
-              {/* Routes using the AppLayout (Sidebar + Navbar) */}
               <Route element={<AppLayout />}>
-                 <Route path="dashboard" element={<DashboardPage />} /> 
-                 <Route path="project/:projectId" element={<ProjectPage />} /> {/* Still placeholder */}
-                 {/* Add other protected routes like /settings here */}
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="project/:projectId" element={<ProjectPage />} />
+                <Route path="projects" element={<ProjectsPage />} />
+                <Route path="tasks" element={<TasksPage />} /> {/* Add Tasks Route */}
+                <Route path="calendar" element={<CalendarPage />} /> {/* Add Calendar Route */}
+                <Route path="notifications" element={<NotificationPage />} />
+                <Route path="settings" element={<SettingsPage />} />
               </Route>
-           </Route>
+            </Route>
 
-          {/* --- Not Found Route (Using Placeholder) --- */}
-           <Route path="*" element={<PlaceholderNotFoundPage />} /> {/* Temp */}
-
-        </Routes>
+            <Route path="*" element={<PlaceholderNotFoundPage />} />
+          </Routes>
+        </ProjectProvider> {/* End ProjectProvider */}
       </BrowserRouter>
     </AuthProvider>
   );

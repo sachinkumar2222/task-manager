@@ -1,195 +1,265 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-// Import API functions
-import { getProjects } from '../api/taskService';
 import { getDashboardStats } from '../api/analyticsService';
-import { getWorkspaceMemberCount } from '../api/authService';
-import { PlusCircle, AlertCircle, Loader2, UserPlus } from 'lucide-react'; // UserPlus icon wapas laye
-import CreateProjectModal from '../components/projects/CreateProjectModal';
-import InviteMemberModal from '../components/workspaces/InviteMemberModal'; // Invite Modal import karein
+import { getUserTasks } from '../api/taskService'; // Import task service
+import { useAuth } from '../context/AuthContext';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { LayoutDashboard, CheckCircle2, ListTodo, TrendingUp, Activity, User, Users } from 'lucide-react';
 
-// --- IMPORT REUSABLE DASHBOARD COMPONENTS ---
-import TaskTrendChart from '../components/dashboard/TaskTrendChart';
-import StatCard from '../components/dashboard/StatCard';
-
-/**
- * DashboardPage
- * Fetches and displays projects, analytics, and team member count.
- * Includes functionality to Create Projects and Invite Members.
- */
 const DashboardPage = () => {
     const { currentUser, activeWorkspace } = useAuth();
-    const [projects, setProjects] = useState([]);
     const [stats, setStats] = useState(null);
+    const [assignedTasksCount, setAssignedTasksCount] = useState(0); // State for live task count
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-    
-    // Modal States
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false); // Invite modal state wapas add kiya
+    const [error, setError] = useState(null);
 
-    // Function to fetch data for the active workspace
-    const fetchData = async () => {
-        if (!activeWorkspace?.id) {
-            setIsLoading(false);
-            return;
-        }
-        setIsLoading(true);
-        setError('');
-        try {
-            const [projectData, statsData, memberCountData] = await Promise.all([
-                getProjects(), 
-                getDashboardStats(), 
-                getWorkspaceMemberCount(activeWorkspace.id) 
-            ]);
-            
-            setProjects(projectData || []);
-            setStats({ 
-                ...statsData, 
-                memberCount: memberCountData.count 
-            }); 
-            
-        } catch (err) {
-            console.error(`Failed to fetch dashboard data:`, err);
-            setError(err.message || 'Could not load dashboard data.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const isAdmin = activeWorkspace?.role === 'ADMIN';
 
     useEffect(() => {
-        fetchData();
-    }, [activeWorkspace]); 
+        const loadIds = async () => {
+            try {
+                // Parallel fetch
+                const scope = isAdmin ? 'workspace' : 'me';
+                const [analyticsData, tasksData] = await Promise.all([
+                    getDashboardStats(scope),
+                    !isAdmin ? getUserTasks('assigned') : Promise.resolve([]) // Only fetch tasks if Member
+                ]);
 
-    const handleProjectCreated = (newProject) => {
-        setProjects(prevProjects => [...prevProjects, newProject]);
-        getDashboardStats()
-            .then(statsData => setStats(prevStats => ({...prevStats, ...statsData})))
-            .catch(err => console.error("Failed to refetch stats:", err));
-    };
+                setStats(analyticsData);
+                if (!isAdmin) {
+                    setAssignedTasksCount(tasksData ? tasksData.length : 0);
+                }
+
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadIds();
+    }, [isAdmin]);
 
     if (isLoading) {
-         return (
-            <div className="flex justify-center items-center py-10">
-                <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-                <span className="ml-3 text-gray-600">Loading dashboard...</span>
-            </div>
-         );
-    }
-
-    if (error) {
-         return (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative flex items-center gap-2" role="alert">
-                <AlertCircle className="h-5 w-5"/>
-                <span className="block sm:inline">Error: {error}</span>
-                 {!activeWorkspace?.id && (
-                     <Link to="/workspaces" className="ml-4 font-medium text-red-800 underline">Select Workspace</Link>
-                 )}
-            </div>
-         );
-    }
-
-    if (!activeWorkspace?.id) {
         return (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-                <p className="mb-4">Please select a workspace to view the dashboard.</p>
-                <Link to="/workspaces" className="text-indigo-600 hover:underline">Go to Workspaces</Link>
+            <div className="flex h-screen items-center justify-center dark:text-white">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
             </div>
         );
     }
 
-    return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 truncate">
-                    {activeWorkspace.name}
-                </h1>
-                
-                {/* Action Buttons Container */}
-                <div className="flex gap-3">
-                    {/* --- INVITE MEMBER BUTTON (RESTORED) --- */}
-                   {activeWorkspace?.role === 'ADMIN' && (
-                        <button
-                            onClick={() => setIsInviteModalOpen(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 border border-indigo-600 text-sm font-medium rounded-md shadow-sm hover:bg-indigo-50 transition flex-shrink-0"
-                        >
-                            <UserPlus className="h-5 w-5" />
-                            Invite Member
-                        </button>
-                    )}
-
-                   {activeWorkspace?.role === 'ADMIN' && (
-                        <button
-                            onClick={() => setIsCreateModalOpen(true)} 
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out flex-shrink-0"
-                        >
-                            <PlusCircle className="h-5 w-5" />
-                            Create Project
-                        </button>
-                    )}
-                </div>
+    if (error) {
+        return (
+            <div className="p-8 text-center text-red-500">
+                <p>Error loading dashboard: {error}</p>
+                <button onClick={() => window.location.reload()} className="mt-4 text-indigo-600 hover:underline">Retry</button>
             </div>
+        );
+    }
 
-            {/* Content Area */}
-            <>
-                {/* Analytics Stats Section */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <StatCard title="Total Projects" value={stats?.totalProjects} />
-                    <StatCard title="Active Tasks" value={stats?.activeTasks} />
-                    <StatCard title="Team Members" value={stats?.memberCount} /> 
-                    
-                    <StatCard title="Tasks Created (7 Days)" value={stats?.createdTasksLast7Days} />
-                    <StatCard title="Tasks Completed (7 Days)" value={stats?.completedTasksLast7Days} />
-                    <StatCard title="Total Completed" value={stats?.completedTasks} />
-                </div>
+    if (!stats) return null;
 
-                {/* Task Completion Trend Chart */}
-                <div className="bg-white p-6 rounded-lg shadow mt-6">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                        Task Completion Trend (Last 7 Days)
-                    </h2>
-                    <TaskTrendChart data={stats?.taskTrendData} />
-                </div>
-
-                {/* Projects List Section */}
-                <div className="bg-white p-6 rounded-lg shadow mt-6">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Projects in this Workspace</h2>
-                    {projects.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {projects.map(project => (
-                                <Link
-                                    to={`/project/${project.id}`}
-                                    key={project.id}
-                                    className="block p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-indigo-500 transition duration-150 ease-in-out"
-                                >
-                                    <h3 className="font-medium text-gray-900 truncate">{project.name}</h3>
-                                    <p className="text-sm text-gray-500 mt-1 truncate">{project.description || 'No description'}</p>
-                                </Link>
-                            ))}
-                         </div>
-                    ) : (
-                        <p className="text-gray-500 text-center py-4">No projects found. Click "Create Project" to get started!</p>
+    return (
+        <div className="p-6 max-w-7xl mx-auto space-y-8">
+            <header className="mb-8">
+                <div className="flex justify-between items-end">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                            {isAdmin ? <LayoutDashboard className="text-indigo-600" /> : <User className="text-green-600" />}
+                            {isAdmin ? 'Workspace Overview' : 'My Dashboard'}
+                        </h1>
+                        <p className="text-gray-500 dark:text-gray-400 mt-2">
+                            {isAdmin
+                                ? 'Track overall team performance and project health.'
+                                : `Welcome back, ${currentUser?.fullName || 'User'}. Here is your personal activity.`}
+                        </p>
+                    </div>
+                    {!isAdmin && (
+                        <div className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
+                            Personal View
+                        </div>
                     )}
                 </div>
-            </>
+            </header>
 
-            {/* Modals */}
-            <CreateProjectModal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-                onProjectCreated={handleProjectCreated}
-            />
-            
-            {/* --- INVITE MODAL (RESTORED) --- */}
-            <InviteMemberModal 
-                isOpen={isInviteModalOpen}
-                onClose={() => setIsInviteModalOpen(false)}
-                workspaceId={activeWorkspace.id}
-            />
+            {/* Design A: ADMIN DASHBOARD */}
+            {isAdmin && (
+                <>
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <StatCard
+                            title="Total Tasks"
+                            value={stats.totalTasks}
+                            icon={<ListTodo size={24} className="text-blue-600" />}
+                            bgColor="bg-blue-50 dark:bg-blue-900/20"
+                        />
+                        <StatCard
+                            title="Total Projects"
+                            value={stats.totalProjects}
+                            icon={<Users size={24} className="text-indigo-600" />}
+                            bgColor="bg-indigo-50 dark:bg-indigo-900/20"
+                        />
+                        <StatCard
+                            title="Completed"
+                            value={stats.completedTasks}
+                            icon={<CheckCircle2 size={24} className="text-green-600" />}
+                            bgColor="bg-green-50 dark:bg-green-900/20"
+                        />
+                        <StatCard
+                            title="Completion Rate"
+                            value={`${stats.totalTasks ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0}%`}
+                            icon={<TrendingUp size={24} className="text-purple-600" />}
+                            bgColor="bg-purple-50 dark:bg-purple-900/20"
+                        />
+                    </div>
+
+                    {/* Charts Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Completion Trend */}
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Team Productivity (Last 7 Days)</h3>
+                            <div className="h-[300px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={stats.taskTrendData}>
+                                        <defs>
+                                            <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                        <XAxis
+                                            dataKey="name"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#6B7280', fontSize: 12 }}
+                                            dy={10}
+                                        />
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#6B7280', fontSize: 12 }}
+                                        />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="count"
+                                            stroke="#4f46e5"
+                                            strokeWidth={3}
+                                            fillOpacity={1}
+                                            fill="url(#colorCount)"
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Task Distribution (Simple Bar for now, derived from stats) */}
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Workload Overview</h3>
+                            <div className="h-[300px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={[
+                                            { name: 'Active', count: stats.activeTasks, fill: '#f97316' }, // Orange
+                                            { name: 'Completed', count: stats.completedTasks, fill: '#22c55e' }, // Green
+                                        ]}
+                                        layout="vertical"
+                                        barSize={40}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E5E7EB" />
+                                        <XAxis type="number" hide />
+                                        <YAxis
+                                            dataKey="name"
+                                            type="category"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#6B7280', fontSize: 14, fontWeight: 500 }}
+                                            width={100}
+                                        />
+                                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px' }} />
+                                        <Bar dataKey="count" radius={[0, 4, 4, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Design B: TEAM MEMBER DASHBOARD */}
+            {!isAdmin && (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* CHANGED FROM "Created by Me" TO "Assigned to Me" */}
+                        <StatCard
+                            title="Tasks Assigned to Me"
+                            value={assignedTasksCount} // Live data from task-service
+                            icon={<ListTodo size={24} className="text-blue-600" />}
+                            bgColor="bg-blue-50 dark:bg-blue-900/20"
+                        />
+                        <StatCard
+                            title="My Completed Tasks"
+                            value={stats.completedTasks} // Still from Analytics for now
+                            icon={<CheckCircle2 size={24} className="text-green-600" />}
+                            bgColor="bg-green-50 dark:bg-green-900/20"
+                        />
+                        <StatCard
+                            title="Recent Activity"
+                            value={stats.createdTasksLast7Days || 0} // This might be low if they don't create tasks
+                            icon={<Activity size={24} className="text-orange-600" />}
+                            bgColor="bg-orange-50 dark:bg-orange-900/20"
+                        />
+                    </div>
+
+                    <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">My Personal Productivity</h3>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={stats.taskTrendData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                                        dy={10}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                                    />
+                                    <Tooltip
+                                        cursor={{ fill: 'transparent' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    />
+                                    <Bar
+                                        dataKey="count"
+                                        fill="#10b981"
+                                        radius={[4, 4, 0, 0]}
+                                        barSize={50}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 };
+
+const StatCard = ({ title, value, icon, bgColor }) => (
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between transition-transform hover:scale-[1.02]">
+        <div>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
+        </div>
+        <div className={`p-3 rounded-xl ${bgColor}`}>
+            {icon}
+        </div>
+    </div>
+);
 
 export default DashboardPage;

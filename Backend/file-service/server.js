@@ -1,17 +1,22 @@
 require('dotenv').config();
 const express = require('express');
+const connectDB = require('./config/db'); // Import DB connection
 const fileRoutes = require('./routes/fileRoutes');
+
+// Connect to MongoDB
+connectDB();
 
 const app = express();
 
-// Middleware to parse JSON bodies
+// Middleware for parsing JSON and URL-encoded data
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Allow form data parsing
 
-// --- ROUTE REGISTRATION UPDATED ---
-// Register fileRoutes at the root ('/') because the API Gateway adds '/api/files'
-app.use('/', fileRoutes); 
+// Register routes
+// Note: API Gateway forwards /api/files -> / here.
+app.use('/', fileRoutes);
 
-// Health check endpoint
+// Health check
 app.get('/', (req, res) => {
     res.status(200).json({ 
         status: "success", 
@@ -19,10 +24,8 @@ app.get('/', (req, res) => {
     });
 });
 
-// Use the correct port for the file service from our plan
-const PORT = process.env.PORT || 4004; 
+const PORT = process.env.PORT || 4004;
 
 app.listen(PORT, () => {
   console.log(`🚀 File Service is live and listening on port ${PORT}`);
 });
-

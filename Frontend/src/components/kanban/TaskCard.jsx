@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserCircle, MoreHorizontal, Edit, Trash2 } from 'lucide-react'; 
+import { UserCircle, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 
 const TaskCard = ({ task, onClick, onEditClick, onDeleteClick, isAdmin }) => { // Added isAdmin prop
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const menuRef = useRef(null); 
+    const menuRef = useRef(null);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -21,16 +21,22 @@ const TaskCard = ({ task, onClick, onEditClick, onDeleteClick, isAdmin }) => { /
 
     if (!task) return null;
 
-    const assigneeName = task.assigneeId ? `User ${task.assigneeId.substring(0, 4)}` : 'Unassigned';
+    // Updated Display Logic for Multiple Assignees (Version 2)
+    let assigneeDisplay = "Unassigned";
+    if (task.assigneeIds && task.assigneeIds.length > 0) {
+        assigneeDisplay = `${task.assigneeIds.length} Assignee${task.assigneeIds.length > 1 ? 's' : ''}`;
+    } else if (task.assigneeId) {
+        assigneeDisplay = "1 Assignee"; // Fallback for old data
+    }
 
     const handleEdit = (e) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         onEditClick();
         setIsMenuOpen(false);
     };
 
     const handleDelete = (e) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         onDeleteClick();
         setIsMenuOpen(false);
     };
@@ -38,24 +44,24 @@ const TaskCard = ({ task, onClick, onEditClick, onDeleteClick, isAdmin }) => { /
     return (
         <div
             onClick={onClick}
-            className="bg-white rounded-md shadow p-3 cursor-pointer hover:shadow-md transition-shadow border border-gray-200 relative" 
+            className="group bg-white dark:bg-gray-800 rounded-md shadow p-3 cursor-pointer hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700 relative"
             role="button"
             tabIndex={0}
             onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onClick()}
         >
-            <h4 className="text-sm font-medium text-gray-800 mb-2 break-words">{task.title}</h4>
+            <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2 break-words">{task.title}</h4>
 
-            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
-                <div className="flex items-center gap-1 text-xs text-gray-500">
+            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                     <UserCircle size={14} />
-                    <span>{assigneeName}</span>
+                    <span>{assigneeDisplay}</span>
                 </div>
 
                 <div className="relative" ref={menuRef}>
                     <button
                         onClick={(e) => {
-                            e.stopPropagation(); 
-                            setIsMenuOpen(!isMenuOpen); 
+                            e.stopPropagation();
+                            setIsMenuOpen(!isMenuOpen);
                         }}
                         className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100"
                         aria-label="Task options"
@@ -64,30 +70,26 @@ const TaskCard = ({ task, onClick, onEditClick, onDeleteClick, isAdmin }) => { /
                     </button>
 
                     {isMenuOpen && (
-                        <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-md shadow-xl z-50">
+                        <div className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-xl z-50">
                             <ul className="py-1">
                                 <li>
                                     <button
                                         onClick={handleEdit}
-                                        className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                        className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                                     >
-                                        {/* Change text based on role */}
                                         <Edit size={14} /> {isAdmin ? 'Edit Task' : 'Update Status'}
                                     </button>
                                 </li>
-                                
-                                {/* --- THIS IS THE FIX: Hide Delete if not Admin --- */}
                                 {isAdmin && (
                                     <li>
                                         <button
                                             onClick={handleDelete}
-                                            className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                            className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
                                         >
                                             <Trash2 size={14} /> Delete Task
                                         </button>
                                     </li>
                                 )}
-                                {/* ------------------------------------------------ */}
                             </ul>
                         </div>
                     )}

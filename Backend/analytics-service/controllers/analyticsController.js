@@ -38,14 +38,24 @@ exports.logEvent = async (req, res) => {
 exports.getDashboardStats = async (req, res) => {
   try {
     // The user's workspaceId is attached to the request by the checkAuth middleware
-    const { workspaceId } = req.userData;
+    const { workspaceId, userId } = req.userData;
 
-    // Call the model function to query the database and calculate the stats
-    const stats = await Analytics.getWorkspaceDashboardStats(workspaceId);
+    // Check role (Frontend should send it, or we decode if available in token)
+    // For now, let's use a query param 'scope' to decide. 
+    // scope=me -> User Stats, scope=workspace -> Workspace Stats (Admin only ideally)
+    const scope = req.query.scope;
+
+    let stats;
+    if (scope === 'me') {
+      stats = await Analytics.getUserDashboardStats(workspaceId, userId);
+    } else {
+      // Default to workspace stats (Admin view)
+      stats = await Analytics.getWorkspaceDashboardStats(workspaceId);
+    }
 
     // Send the calculated stats back to the frontend
     res.status(200).json(stats);
-  } catch (error){
+  } catch (error) {
     console.error('Get Dashboard Stats Error:', error);
     res.status(500).json({ message: 'Internal server error while fetching dashboard stats.' });
   }

@@ -18,6 +18,9 @@ module.exports = (req, res, next) => {
     const workspaceId = req.headers['x-workspace-id']; 
 
     // Step 4: Check if the workspace ID is present (Crucial for most task-service routes)
+    console.log(`[checkAuth] Headers:`, JSON.stringify(req.headers));
+    console.log(`[checkAuth] Extracted workspaceId: ${workspaceId}`);
+
     if (!workspaceId) {
         // We need a workspace context for almost all actions in task-service
         console.warn(`[checkAuth - Task Service] Missing X-Workspace-ID header for ${req.method} ${req.originalUrl}`);

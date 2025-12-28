@@ -31,7 +31,6 @@ const sendNotification = async (userId, event) => {
       }
     );
 
-    console.log(`Notification event sent successfully for user ${userId}.`);
   } catch (error) {
     // If the notification service is down or an error occurs, log it
     // but don’t crash the main application.

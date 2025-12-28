@@ -2,14 +2,27 @@ const express = require('express');
 const router = express.Router();
 const fileController = require('../controllers/fileController');
 const checkAuth = require('../middleware/checkAuth');
+const multer = require('multer');
 
-// POST /api/files/upload-url -> File upload karne ke liye ek secure URL generate karta hai
-router.post('/upload-url', checkAuth, fileController.generateUploadUrl);
+// Configure Multer to store file in memory (so we can save to MongoDB)
+const storage = multer.memoryStorage();
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 } // Limit to 10MB to be safe
+});
 
-// --- YEH NAYA ROUTE HAI ---
-// GET /api/files/task/:taskId -> Ek specific task se judi saari files ki list deta hai
-// Yeh route bhi protected hai taaki sirf logged-in user hi ise access kar sakein
+// --- Routes ---
+
+// POST /upload -> Upload a file
+// Uses 'upload.single("file")' middleware to process the file
+router.post('/upload', checkAuth, upload.single('file'), fileController.uploadFile);
+
+// GET /task/:taskId -> Get list of files for a task
 router.get('/task/:taskId', checkAuth, fileController.getFilesForTask);
 
-module.exports = router;
+// GET /download/:fileId -> Download/View a specific file
+// Note: This might be accessed via <img> tags, so we might need token in query param in future,
+// but for now we keep it protected via header.
+router.get('/download/:fileId', checkAuth, fileController.downloadFile);
 
+module.exports = router;

@@ -10,7 +10,7 @@ import Navbar from './Navbar'; // Navbar component (hum agle step mein banayenge
  */
 const AppLayout = () => {
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       {/* Sidebar */}
       <Sidebar />
 
@@ -20,7 +20,7 @@ const AppLayout = () => {
         <Navbar />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 md:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6 md:p-8">
           {/* Outlet App.jsx mein define kiye gaye child routes (DashboardPage, ProjectPage) ko render karega */}
           <Outlet />
         </main>

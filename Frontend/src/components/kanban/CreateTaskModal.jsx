@@ -15,6 +15,7 @@ import toast from 'react-hot-toast'; // For success/error notifications
 const CreateTaskModal = ({ isOpen, onClose, projectId, onTaskCreated }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   // Future state: const [assigneeId, setAssigneeId] = useState(null);
@@ -28,8 +29,8 @@ const CreateTaskModal = ({ isOpen, onClose, projectId, onTaskCreated }) => {
       return;
     }
     if (!projectId) {
-        setError('Project ID is missing. Cannot create task.');
-        return;
+      setError('Project ID is missing. Cannot create task.');
+      return;
     }
     setIsLoading(true);
 
@@ -38,12 +39,13 @@ const CreateTaskModal = ({ isOpen, onClose, projectId, onTaskCreated }) => {
         title,
         description,
         projectId,
+        dueDate
         // assigneeId: assigneeId, // Add this later
         // status: 'TO_DO' // Backend should handle default status
       };
-      
+
       const createdTask = await createTask(newTaskData); // Call the API
-      
+
       toast.success(`Task "${createdTask.title}" created successfully!`);
       onTaskCreated(createdTask); // Notify parent component (ProjectPage)
       handleClose(); // Close modal on success
@@ -71,7 +73,7 @@ const CreateTaskModal = ({ isOpen, onClose, projectId, onTaskCreated }) => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Task Title Input */}
         <div>
-          <label htmlFor="taskTitle" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="taskTitle" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Task Title <span className="text-red-500">*</span>
           </label>
           <input
@@ -79,7 +81,7 @@ const CreateTaskModal = ({ isOpen, onClose, projectId, onTaskCreated }) => {
             id="taskTitle"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
             placeholder="e.g., Design the login page mockup"
             required
             disabled={isLoading}
@@ -89,7 +91,7 @@ const CreateTaskModal = ({ isOpen, onClose, projectId, onTaskCreated }) => {
 
         {/* Task Description Textarea */}
         <div>
-          <label htmlFor="taskDescription" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="taskDescription" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Description (Optional)
           </label>
           <textarea
@@ -97,10 +99,24 @@ const CreateTaskModal = ({ isOpen, onClose, projectId, onTaskCreated }) => {
             rows="4"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
             placeholder="Add a more detailed description..."
             disabled={isLoading}
           ></textarea>
+        </div>
+
+        {/* Due Date Input */}
+        <div>
+          <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Due Date
+          </label>
+          <input
+            type="date"
+            id="dueDate"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+          />
         </div>
 
         {/* TODO: Add Assignee Dropdown here */}
@@ -114,7 +130,7 @@ const CreateTaskModal = ({ isOpen, onClose, projectId, onTaskCreated }) => {
             type="button"
             onClick={handleClose}
             disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
           >
             Cancel
           </button>

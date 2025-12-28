@@ -1,0 +1,188 @@
+/* CalendarOverrides.css */
+
+/* --- GENERAL & LIGHT MODE DEFAULTS --- */
+.rbc-calendar {
+    font-family: inherit;
+}
+
+/* Toolbar (Month/Week/Day buttons + Label) */
+.rbc-toolbar .rbc-toolbar-label {
+    color: #111827;
+    /* gray-900 */
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.rbc-toolbar button {
+    color: #374151;
+    /* gray-700 */
+    border: 1px solid #e5e7eb;
+    /* gray-200 */
+    font-size: 0.875rem;
+}
+
+.rbc-toolbar button:hover {
+    background-color: #f9fafb;
+    /* gray-50 */
+}
+
+.rbc-toolbar button.rbc-active {
+    background-color: #e5e7eb;
+    /* gray-200 */
+    color: #111827;
+    /* gray-900 */
+    box-shadow: none;
+}
+
+/* Header (Sun, Mon...) */
+.rbc-header {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 8px 0;
+    font-weight: 600;
+    color: #4b5563;
+    /* gray-600 */
+}
+
+/* Month View Grid */
+.rbc-month-view {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    /* rounded corners fix */
+}
+
+.rbc-day-bg+.rbc-day-bg {
+    border-left: 1px solid #e5e7eb;
+}
+
+.rbc-month-row+.rbc-month-row {
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Dates */
+.rbc-date-cell {
+    padding: 4px 8px;
+    font-weight: 500;
+    color: #374151;
+    /* gray-700 */
+}
+
+/* Off-Range (Previous/Next Month) */
+.rbc-off-range-bg {
+    background-color: #f9fafb;
+    /* gray-50 */
+}
+
+.rbc-off-range .rbc-button-link {
+    color: #9ca3af;
+    /* gray-400 */
+}
+
+/* Today */
+.rbc-today {
+    background-color: #eff6ff;
+    /* blue-50 */
+}
+
+/* Event Styling */
+.rbc-event {
+    background-color: #4f46e5;
+    /* indigo-600 */
+    border: none;
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 0.85rem;
+}
+
+
+/* --- DARK MODE OVERRIDES --- */
+/* Ensure these selectors are specific enough to override defaults */
+
+/* Main Container Text */
+.dark .rbc-calendar {
+    color: #e5e7eb;
+    /* gray-200 */
+}
+
+/* Toolbar */
+.dark .rbc-toolbar .rbc-toolbar-label {
+    color: #f3f4f6;
+    /* gray-100 */
+}
+
+.dark .rbc-toolbar button {
+    color: #d1d5db;
+    /* gray-300 */
+    border-color: #374151;
+    /* gray-700 */
+    background-color: #1f2937;
+    /* gray-800 */
+}
+
+.dark .rbc-toolbar button:hover {
+    background-color: #374151;
+    /* gray-700 */
+    color: #ffffff;
+}
+
+.dark .rbc-toolbar button.rbc-active {
+    background-color: #4f46e5;
+    /* indigo-600 */
+    color: #ffffff;
+    border-color: #4f46e5;
+}
+
+/* Header */
+.dark .rbc-header {
+    border-bottom-color: #374151;
+    /* gray-700 */
+    color: #9ca3af;
+    /* gray-400 */
+}
+
+/* Grid Lines & Backgrounds */
+.dark .rbc-month-view {
+    border-color: #374151;
+    /* gray-700 */
+    background-color: #1f2937;
+    /* gray-800 (Match app card bg) */
+}
+
+.dark .rbc-day-bg {
+    border-left-color: #374151;
+    /* gray-700 */
+}
+
+.dark .rbc-month-row+.rbc-month-row {
+    border-top-color: #374151;
+    /* gray-700 */
+}
+
+/* Dates */
+.dark .rbc-date-cell .rbc-button-link {
+    color: #e5e7eb;
+    /* gray-200 */
+}
+
+/* Off-Range (Previous/Next Month) */
+.dark .rbc-off-range-bg {
+    background-color: #111827;
+    /* gray-900 (Darker than main bg) */
+}
+
+.dark .rbc-off-range .rbc-button-link {
+    color: #4b5563;
+    /* gray-600 */
+}
+
+/* Today */
+.dark .rbc-today {
+    background-color: rgba(79, 70, 229, 0.15);
+    /* indigo-600 low opacity */
+}
+
+/* Events */
+.dark .rbc-event {
+    background-color: #6366f1;
+    /* indigo-500 (slightly lighter for dark mode) */
+}

@@ -49,7 +49,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'max-w-lg' }) => {
 
   return (
     // Fixed position overlay covering the whole screen
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 transition-opacity duration-300 ease-in-out"
       onClick={onClose} // Close modal when clicking on the overlay
       aria-labelledby="modal-title"
@@ -58,21 +58,21 @@ const Modal = ({ isOpen, onClose, title, children, size = 'max-w-lg' }) => {
     >
       {/* Modal Content Box */}
       {/* Stop propagation prevents closing modal when clicking inside the content */}
-      <div 
-        className={`bg-white rounded-lg shadow-xl overflow-hidden transform transition-all duration-300 ease-in-out w-full ${size}`}
-        onClick={(e) => e.stopPropagation()} 
+      <div
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden transform transition-all duration-300 ease-in-out w-full ${size}`}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           {title && (
-            <h2 id="modal-title" className="text-lg font-semibold text-gray-800">
+            <h2 id="modal-title" className="text-lg font-semibold text-gray-800 dark:text-white">
               {title}
             </h2>
           )}
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 focus:outline-none"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
             aria-label="Close modal"
           >
             <X className="h-6 w-6" />
@@ -83,7 +83,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'max-w-lg' }) => {
         <div className="p-6 overflow-y-auto max-h-[70vh]"> {/* Added max-height and scroll */}
           {children}
         </div>
-        
+
         {/* Optional: Modal Footer (can be added via children or separate prop) */}
         {/* <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end">
           <button onClick={onClose} className="...">Cancel</button>

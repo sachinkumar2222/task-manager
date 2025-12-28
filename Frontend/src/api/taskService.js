@@ -8,10 +8,25 @@ import apiClient from './apiClient';
 export const getProjects = async () => {
   try {
     const response = await apiClient.get('/api/projects');
-    return response.data; 
+    return response.data;
   } catch (error) {
     console.error('Get Projects API Error:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Failed to fetch projects.');
+  }
+};
+
+/**
+ * Fetches real-time workspace stats (Total Projects, Tasks) from Task Service.
+ * @returns {Promise<object>} { totalProjects, totalTasks, activeTasks, completedTasks }
+ */
+export const getWorkspaceStats = async () => {
+  try {
+    // Add timestamp to prevent caching
+    const response = await apiClient.get(`/api/projects/stats?t=${Date.now()}`);
+    return response.data;
+  } catch (error) {
+    console.error('Get Workspace Stats API Error:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to fetch workspace stats.');
   }
 };
 
@@ -23,7 +38,7 @@ export const getProjects = async () => {
 export const createProject = async (projectData) => {
   try {
     const response = await apiClient.post('/api/projects', projectData);
-    return response.data; 
+    return response.data;
   } catch (error) {
     console.error('Create Project API Error:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Failed to create project.');
@@ -38,7 +53,7 @@ export const createProject = async (projectData) => {
 export const getProjectDetails = async (projectId) => {
   try {
     const response = await apiClient.get(`/api/projects/${projectId}`);
-    return response.data; 
+    return response.data;
   } catch (error) {
     console.error(`Get Project Details ${projectId} API Error:`, error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Failed to fetch project details.');
@@ -52,28 +67,38 @@ export const getProjectDetails = async (projectId) => {
  * @returns {Promise<object>} The updated project object.
  */
 export const updateProject = async (projectId, updateData) => {
-    try {
-      const response = await apiClient.patch(`/api/projects/${projectId}`, updateData);
-      return response.data; 
-    } catch (error) {
-      console.error(`Update Project ${projectId} API Error:`, error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Failed to update project.');
-    }
-  };
-  
-  /**
-   * Deletes a project. (NEW FUNCTION)
-   * @param {string} projectId - The ID of the project to delete.
-   * @returns {Promise<void>}
-   */
-  export const deleteProject = async (projectId) => {
-    try {
-      await apiClient.delete(`/api/projects/${projectId}`);
-    } catch (error) {
-      console.error(`Delete Project ${projectId} API Error:`, error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Failed to delete project.');
-    }
-  };
+  try {
+    const response = await apiClient.patch(`/api/projects/${projectId}`, updateData);
+    return response.data;
+  } catch (error) {
+    console.error(`Update Project ${projectId} API Error:`, error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to update project.');
+  }
+};
+
+/**
+ * Deletes a project. (NEW FUNCTION)
+ * @param {string} projectId - The ID of the project to delete.
+ * @returns {Promise<void>}
+ */
+export const deleteProject = async (projectId) => {
+  try {
+    await apiClient.delete(`/api/projects/${projectId}`);
+  } catch (error) {
+    console.error(`Delete Project ${projectId} API Error:`, error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to delete project.');
+  }
+};
+
+export const getUserTasks = async (filter) => {
+  try {
+    const response = await apiClient.get(`/api/tasks/user?filter=${filter}`);
+    return response.data;
+  } catch (error) {
+    console.error("Get User Tasks Error:", error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || "Failed to fetch tasks.");
+  }
+};
 
 
 /**
@@ -84,7 +109,7 @@ export const updateProject = async (projectId, updateData) => {
 export const getTasksForProject = async (projectId) => {
   try {
     const response = await apiClient.get(`/api/projects/${projectId}/tasks`);
-    return response.data; 
+    return response.data;
   } catch (error) {
     console.error(`Get Tasks for Project ${projectId} API Error:`, error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Failed to fetch tasks for the project.');
@@ -99,7 +124,7 @@ export const getTasksForProject = async (projectId) => {
 export const createTask = async (taskData) => {
   try {
     const response = await apiClient.post('/api/tasks', taskData);
-    return response.data; 
+    return response.data;
   } catch (error) {
     console.error('Create Task API Error:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Failed to create task.');
@@ -115,7 +140,7 @@ export const createTask = async (taskData) => {
 export const updateTask = async (taskId, updateData) => {
   try {
     const response = await apiClient.patch(`/api/tasks/${taskId}`, updateData);
-    return response.data; 
+    return response.data;
   } catch (error) {
     console.error(`Update Task ${taskId} API Error:`, error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Failed to update task.');
@@ -128,41 +153,91 @@ export const updateTask = async (taskId, updateData) => {
  * @returns {Promise<void>} Resolves on successful deletion.
  */
 export const deleteTask = async (taskId) => {
-    try {
-        await apiClient.delete(`/api/tasks/${taskId}`);
-    } catch (error) {
-        console.error(`Delete Task ${taskId} API Error:`, error.response?.data || error.message);
-        throw new Error(error.response?.data?.message || 'Failed to delete task.');
-    }
+  try {
+    await apiClient.delete(`/api/tasks/${taskId}`);
+  } catch (error) {
+    console.error(`Delete Task ${taskId} API Error:`, error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to delete task.');
+  }
 };
 
 export const getCommentsForTask = async (taskId) => {
-    try {
-        const response = await apiClient.get(`/api/tasks/${taskId}/comments`);
-        return response.data;
-    } catch (error) {
-        console.error(`Get Comments for ${taskId} API Error:`, error.response?.data || error.message);
-        throw new Error('Failed to fetch comments.');
-    }
+  try {
+    const response = await apiClient.get(`/api/tasks/${taskId}/comments`);
+    return response.data;
+  } catch (error) {
+    console.error(`Get Comments for ${taskId} API Error:`, error.response?.data || error.message);
+    throw new Error('Failed to fetch comments.');
+  }
 };
 
 
 export const createComment = async (taskId, content) => {
-    try {
-        const response = await apiClient.post(`/api/tasks/${taskId}/comments`, { content });
-        return response.data;
-    } catch (error) {
-        console.error(`Create Comment API Error:`, error.response?.data || error.message);
-        throw new Error('Failed to post comment.');
-    }
+  try {
+    const response = await apiClient.post(`/api/tasks/${taskId}/comments`, { content });
+    return response.data;
+  } catch (error) {
+    console.error(`Create Comment API Error:`, error.response?.data || error.message);
+    throw new Error('Failed to post comment.');
+  }
 };
 
 export const deleteComment = async (commentId) => {
-    try {
-        // Gateway maps /api/comments to task-service
-        await apiClient.delete(`/api/comments/${commentId}`);
-    } catch (error) {
-        console.error(`Delete Comment API Error:`, error.response?.data || error.message);
-        throw new Error('Failed to delete comment.');
-    }
+  try {
+    // Gateway maps /api/comments to task-service
+    await apiClient.delete(`/api/comments/${commentId}`);
+  } catch (error) {
+    console.error(`Delete Comment API Error:`, error.response?.data || error.message);
+    throw new Error('Failed to delete comment.');
+  }
+};
+
+export const checkDeadlines = async () => {
+  try {
+    const response = await apiClient.post('/api/tasks/check-deadlines');
+    return response.data;
+  } catch (error) {
+    console.error("Check Deadlines API Error:", error.response?.data || error.message);
+    throw new Error('Failed to check deadlines.');
+  }
+};
+
+// --- Subtask APIs ---
+export const createSubtask = async (taskId, title) => {
+  try {
+    const response = await apiClient.post(`/api/tasks/${taskId}/subtasks`, { title });
+    return response.data;
+  } catch (error) {
+    console.error("Create Subtask API Error:", error.response?.data || error.message);
+    throw new Error('Failed to create subtask.');
+  }
+};
+
+export const getSubtasks = async (taskId) => {
+  try {
+    const response = await apiClient.get(`/api/tasks/${taskId}/subtasks`);
+    return response.data;
+  } catch (error) {
+    console.error("Get Subtasks API Error:", error.response?.data || error.message);
+    throw new Error('Failed to fetch subtasks.');
+  }
+};
+
+export const updateSubtask = async (subtaskId, updates) => {
+  try {
+    const response = await apiClient.patch(`/api/subtasks/${subtaskId}`, updates);
+    return response.data;
+  } catch (error) {
+    console.error("Update Subtask API Error:", error.response?.data || error.message);
+    throw new Error('Failed to update subtask.');
+  }
+};
+
+export const deleteSubtask = async (subtaskId) => {
+  try {
+    await apiClient.delete(`/api/subtasks/${subtaskId}`);
+  } catch (error) {
+    console.error("Delete Subtask API Error:", error.response?.data || error.message);
+    throw new Error('Failed to delete subtask.');
+  }
 };
