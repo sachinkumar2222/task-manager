@@ -259,7 +259,7 @@ exports.checkDeadlines = async (req, res) => {
         notificationsSent: notificationCount
       });
     } else {
-      console.log(`Deadline check run via scheduler. Tasks found: ${tasksDueSoon.length}, Notifications sent: ${notificationCount}`);
+      // console.log(`Deadline check run via scheduler. Tasks found: ${tasksDueSoon.length}, Notifications sent: ${notificationCount}`);
     }
 
   } catch (error) {

@@ -35,7 +35,15 @@ const Navbar = () => {
 
                 {/* User Profile Area */}
                 <Link to="/settings" className="flex items-center gap-2 cursor-pointer p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <UserCircle className="h-8 w-8 text-gray-500 dark:text-gray-300" />
+                    {currentUser?.profileImage ? (
+                        <img
+                            src={currentUser.profileImage}
+                            alt="Profile"
+                            className="h-8 w-8 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+                        />
+                    ) : (
+                        <UserCircle className="h-8 w-8 text-gray-500 dark:text-gray-300" />
+                    )}
                     {/* Display user's first name if available, otherwise email, otherwise 'Profile' */}
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-200 hidden sm:block">
                         {firstName || currentUser?.email || 'User Profile'}

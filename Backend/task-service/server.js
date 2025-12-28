@@ -10,6 +10,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/', apiRoutes);
+app.use('/', require('./routes/messageRoutes')); // Mount messages at root so /projects/... works
 
 app.get('/', (req, res) => {
   res.status(200).json({

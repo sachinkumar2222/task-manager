@@ -7,8 +7,8 @@
  * @returns {Promise<void>}
  */
 const processEvent = async (eventData) => {
-  console.log(`[Event Processor] Received event: ${eventData.eventType}`);
-  
+  // console.log(`[Event Processor] Received event: ${eventData.eventType}`);
+
   // In the future, this is where you would add more complex, real-time logic.
   // For example:
   //

@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
           id: decoded.userId,
           email: decoded.email,
           fullName: decoded.fullName,
+          profileImage: decoded.profileImage, // Extract profileImage
           // Role/Workspace from initial token might be outdated or absent after schema change
         });
         setAuthToken(token);
@@ -171,7 +172,7 @@ export const AuthProvider = ({ children }) => {
 // 8. Custom hook remains the same
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (context === undefined || context === null) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

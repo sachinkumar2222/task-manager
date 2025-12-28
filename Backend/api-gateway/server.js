@@ -9,12 +9,12 @@ const app = express();
 // Enable CORS for frontend
 app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
 
-app.use(express.json());
+// app.use(express.json()); // REMOVE: Let microservices handle parsing to support streams/multipart
 
 // --- Standard Proxy Function (Logging Removed) ---
 const createProxy = (serviceUrl, stripPrefix, options = {}) => {
     return proxy(serviceUrl, {
-        parseReqBody: options.parseReqBody !== undefined ? options.parseReqBody : true,
+        parseReqBody: false, // DEFAULT FALSE: Stream everything (JSON, Multipart, Buffers)
         proxyReqPathResolver: function (req) {
             const parsedUrl = url.parse(req.originalUrl);
             const originalPath = parsedUrl.pathname;

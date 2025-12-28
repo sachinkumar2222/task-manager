@@ -28,7 +28,7 @@ const sendAnalyticsEvent = async (event) => {
     );
     // --- END UPDATE ---
 
-    console.log(`[Task Service] Analytics event "${event.eventType}" sent successfully.`);
+    // console.log(`[Task Service] Analytics event "${event.eventType}" sent successfully.`);
   } catch (error) {
     // Log a more descriptive error
     if (error.response) {

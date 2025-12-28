@@ -38,4 +38,28 @@ const sendNotification = async (userId, event) => {
   }
 };
 
-module.exports = { sendNotification };
+
+
+/**
+ * Sends a broadcast event to a project room via notification service.
+ * @param {string} projectId - The ID of the project room.
+ * @param {object} event - The event data (type, message, payload).
+ */
+const sendProjectEvent = async (projectId, event) => {
+  try {
+    const serviceUrl = process.env.NOTIFICATION_SERVICE_URL;
+    const apiKey = process.env.INTERNAL_API_KEY;
+
+    if (!serviceUrl || !apiKey) return;
+
+    await axios.post(
+      `${serviceUrl}/api/notify/project`, // Endpoint we will create
+      { projectId, event },
+      { headers: { 'x-internal-api-key': apiKey } }
+    );
+  } catch (error) {
+    console.error(`Error sending project event: ${error.message}`);
+  }
+};
+
+module.exports = { sendNotification, sendProjectEvent };

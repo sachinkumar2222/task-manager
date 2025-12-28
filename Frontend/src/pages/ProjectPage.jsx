@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // Import useAuth
-import { useProjects } from '../context/ProjectContext'; // Import ProjectContext
+import { useAuth } from '../context/AuthContext';
+import { useProjects } from '../context/ProjectContext';
 import {
     getTasksForProject,
     getProjectDetails,
@@ -9,19 +9,18 @@ import {
     updateProject,
     deleteProject
 } from '../api/taskService';
-import { getWorkspaceMemberCount, getWorkspaceMembers } from '../api/authService';
-import { Loader2, AlertCircle, PlusCircle, Edit3, Trash2, Users } from 'lucide-react';
+import { getWorkspaceMembers } from '../api/authService';
+import { Loader2, PlusCircle, Edit3, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import KanbanColumn from '../components/kanban/KanbanColumn';
 import TaskSlideOver from '../components/kanban/TaskSlideOver';
 import CreateTaskModal from '../components/kanban/CreateTaskModal';
 import Modal from '../components/common/Modal';
-// ... 
+import ProjectChat from '../components/chat/ProjectChat';
 
 const ProjectPage = () => {
     const { projectId } = useParams();
     const navigate = useNavigate();
-    // Use useLocation to parse query params (or useSearchParams)
     const [searchParams, setSearchParams] = useSearchParams();
     const { activeWorkspace, isAdmin } = useAuth();
     const { fetchProjects } = useProjects();
@@ -37,6 +36,7 @@ const ProjectPage = () => {
     const [editProjectDescription, setEditProjectDescription] = useState('');
     const [isUpdatingProject, setIsUpdatingProject] = useState(false);
     const [workspaceMembers, setWorkspaceMembers] = useState([]);
+    const [activeTab, setActiveTab] = useState('board'); // 'board', 'chat'
 
     // Grouping tasks by status
     const groupedTasks = useMemo(() => {
@@ -51,7 +51,6 @@ const ProjectPage = () => {
                 if (groups[task.status]) {
                     groups[task.status].push(task);
                 } else if (task.status === 'TODO') {
-                    // Fallback for legacy data if needed, or strictly use TO_DO
                     groups.TO_DO.push(task);
                 }
             });
@@ -186,8 +185,8 @@ const ProjectPage = () => {
     if (error) return <div className="text-red-600 p-4">Error: {error} <Link to="/dashboard" className="underline">Back</Link></div>;
 
     return (
-        <div className="flex flex-col h-full">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-6">
+        <div className="flex flex-col h-full bg-white dark:bg-gray-900">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-2 p-6 pb-0">
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white truncate">
@@ -213,7 +212,7 @@ const ProjectPage = () => {
                     </div>
                     <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">{projectDetails?.description}</p>
 
-                    {/* Project Team Display */}
+                    {/* Member Avatars */}
                     {projectTeam.length > 0 && (
                         <div className="flex items-center gap-2 mt-3">
                             <div className="flex -space-x-2">
@@ -233,30 +232,63 @@ const ProjectPage = () => {
                             </span>
                         </div>
                     )}
+
+                    {/* TABS Navigation */}
+                    <div className="flex items-center gap-6 mt-8 border-b border-gray-200 dark:border-gray-700">
+                        <button
+                            onClick={() => setActiveTab('board')}
+                            className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === 'board'
+                                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                                }`}
+                        >
+                            Board
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('chat')}
+                            className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === 'chat'
+                                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                                }`}
+                        >
+                            Team Chat
+                        </button>
+                    </div>
                 </div>
 
-                {/* Only ADMIN can create tasks (Optional, remove isAdmin check if team members can create) */}
-                <button
-                    onClick={() => setIsCreateTaskModalOpen(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-indigo-700 transition flex-shrink-0"
-                >
-                    <PlusCircle className="h-5 w-5" />
-                    Add Task
-                </button>
+                {/* Only ADMIN can create tasks (Show only on Board tab?) */}
+                {activeTab === 'board' && (
+                    <button
+                        onClick={() => setIsCreateTaskModalOpen(true)}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-indigo-700 transition flex-shrink-0 mt-2 sm:mt-0"
+                    >
+                        <PlusCircle className="h-5 w-5" />
+                        Add Task
+                    </button>
+                )}
             </div>
 
-            <div className="flex-1 flex space-x-4 overflow-x-auto pb-4">
-                {Object.values(TASK_STATUSES).map(status => (
-                    <KanbanColumn
-                        key={status}
-                        title={status.replace('_', ' ')}
-                        tasks={groupedTasks[status]}
-                        onTaskClick={handleTaskClick}
-                        onEditTask={handleTaskClick}
-                        onDeleteTask={handleDeleteFromCard}
-                        isAdmin={isAdmin}
-                    />
-                ))}
+            {/* CONTENT AREA */}
+            <div className="flex-1 overflow-hidden p-6 pt-2">
+                {activeTab === 'board' ? (
+                    <div className="flex h-full space-x-4 overflow-x-auto pb-4">
+                        {Object.values(TASK_STATUSES).map(status => (
+                            <KanbanColumn
+                                key={status}
+                                title={status.replace('_', ' ')}
+                                tasks={groupedTasks[status]}
+                                onTaskClick={handleTaskClick}
+                                onEditTask={handleTaskClick}
+                                onDeleteTask={handleDeleteFromCard}
+                                isAdmin={isAdmin}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="h-full">
+                        <ProjectChat projectId={projectId} />
+                    </div>
+                )}
             </div>
 
             <TaskSlideOver
@@ -265,7 +297,6 @@ const ProjectPage = () => {
                 onClose={() => {
                     setIsDetailsModalOpen(false);
                     setSelectedTask(null);
-                    // Clear query param
                     setSearchParams({});
                 }}
                 onTaskDeleted={handleTaskDeleted}
@@ -297,7 +328,5 @@ const ProjectPage = () => {
         </div>
     );
 };
-
-
 
 export default ProjectPage;

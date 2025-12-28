@@ -41,12 +41,10 @@ exports.inviteUser = async (req, res) => {
 
     const invitation = await Workspace.createInvitation(workspaceId, inviterId, email);
 
-    console.log('--- INVITATION CREATED ---');
-    console.log(`Invite for: ${email}`);
-    console.log(`Workspace ID: ${workspaceId}`);
-    console.log(`Invite Token: ${invitation.token}`);
-    console.log(`Accept Link (for testing): http://localhost:5173/accept-invite?token=${invitation.token}`);
-    console.log('--------------------------');
+    // For Testing/Dev only - log the token? 
+    // Ideally this goes to an email service.
+    // For now we do NOT log it to console to keep it clean, user specified removal.
+    // console.log(`[DEV] Invite Token: ${invitation.token}`);
 
     res.status(200).json({ message: 'Invitation has been sent successfully.' });
 
@@ -67,14 +65,14 @@ exports.inviteUser = async (req, res) => {
  * Fetches all workspaces the logged-in user is a member of.
  */
 exports.getUserWorkspaces = async (req, res) => {
-    try {
-        const userId = req.userData.userId;
-        const workspaces = await Workspace.findUserWorkspaces(userId);
-        res.status(200).json(workspaces);
-    } catch (error) {
-        console.error('Get User Workspaces Error:', error);
-        res.status(500).json({ message: 'Internal server error while fetching workspaces.' });
-    }
+  try {
+    const userId = req.userData.userId;
+    const workspaces = await Workspace.findUserWorkspaces(userId);
+    res.status(200).json(workspaces);
+  } catch (error) {
+    console.error('Get User Workspaces Error:', error);
+    res.status(500).json({ message: 'Internal server error while fetching workspaces.' });
+  }
 };
 
 /**
@@ -82,32 +80,32 @@ exports.getUserWorkspaces = async (req, res) => {
  * Only allows ADMINs of that workspace.
  */
 exports.updateWorkspace = async (req, res) => {
-    try {
-        const { workspaceId } = req.params;
-        const { name } = req.body; // Data to update
-        const userId = req.userData.userId; // User performing the action
+  try {
+    const { workspaceId } = req.params;
+    const { name } = req.body; // Data to update
+    const userId = req.userData.userId; // User performing the action
 
-        if (!name) {
-            return res.status(400).json({ message: 'New workspace name is required.' });
-        }
-
-        // Call the model function to update the workspace
-        // The model function MUST verify if the userId is an ADMIN for this workspaceId
-        const updatedWorkspace = await Workspace.update(workspaceId, userId, { name });
-
-        res.status(200).json({
-            message: 'Workspace updated successfully!',
-            workspace: updatedWorkspace
-        });
-
-    } catch (error) {
-        // Handle specific errors like 'Forbidden' or 'Not Found' from the model
-        if (error.message === 'Forbidden: Only admins can update the workspace.' || error.message === 'Workspace not found.') {
-             return res.status(403).json({ message: error.message });
-        }
-        console.error('Update Workspace Error:', error);
-        res.status(500).json({ message: 'Internal server error while updating workspace.' });
+    if (!name) {
+      return res.status(400).json({ message: 'New workspace name is required.' });
     }
+
+    // Call the model function to update the workspace
+    // The model function MUST verify if the userId is an ADMIN for this workspaceId
+    const updatedWorkspace = await Workspace.update(workspaceId, userId, { name });
+
+    res.status(200).json({
+      message: 'Workspace updated successfully!',
+      workspace: updatedWorkspace
+    });
+
+  } catch (error) {
+    // Handle specific errors like 'Forbidden' or 'Not Found' from the model
+    if (error.message === 'Forbidden: Only admins can update the workspace.' || error.message === 'Workspace not found.') {
+      return res.status(403).json({ message: error.message });
+    }
+    console.error('Update Workspace Error:', error);
+    res.status(500).json({ message: 'Internal server error while updating workspace.' });
+  }
 };
 
 /**
@@ -115,25 +113,25 @@ exports.updateWorkspace = async (req, res) => {
  * Only allows ADMINs of that workspace.
  */
 exports.deleteWorkspace = async (req, res) => {
-    try {
-        const { workspaceId } = req.params;
-        const userId = req.userData.userId; // User performing the action
+  try {
+    const { workspaceId } = req.params;
+    const userId = req.userData.userId; // User performing the action
 
-        // Call the model function to delete the workspace
-        // The model function MUST verify if the userId is an ADMIN for this workspaceId
-        await Workspace.delete(workspaceId, userId);
+    // Call the model function to delete the workspace
+    // The model function MUST verify if the userId is an ADMIN for this workspaceId
+    await Workspace.delete(workspaceId, userId);
 
-        // Send a success response with no content
-        res.status(204).send(); 
+    // Send a success response with no content
+    res.status(204).send();
 
-    } catch (error) {
-         // Handle specific errors like 'Forbidden' or 'Not Found' from the model
-        if (error.message === 'Forbidden: Only admins can delete the workspace.' || error.message === 'Workspace not found.') {
-             return res.status(403).json({ message: error.message });
-        }
-        console.error('Delete Workspace Error:', error);
-        res.status(500).json({ message: 'Internal server error while deleting workspace.' });
+  } catch (error) {
+    // Handle specific errors like 'Forbidden' or 'Not Found' from the model
+    if (error.message === 'Forbidden: Only admins can delete the workspace.' || error.message === 'Workspace not found.') {
+      return res.status(403).json({ message: error.message });
     }
+    console.error('Delete Workspace Error:', error);
+    res.status(500).json({ message: 'Internal server error while deleting workspace.' });
+  }
 };
 
 /**
@@ -141,42 +139,42 @@ exports.deleteWorkspace = async (req, res) => {
  * Ensures the requesting user is a member of that workspace.
  */
 exports.getMemberCount = async (req, res) => {
-    try {
-        const { workspaceId } = req.params;
-        const userId = req.userData.userId; // User performing the action
+  try {
+    const { workspaceId } = req.params;
+    const userId = req.userData.userId; // User performing the action
 
-        // Call the model function. It will check for membership and return count.
-        const result = await Workspace.getMemberCount(workspaceId, userId);
+    // Call the model function. It will check for membership and return count.
+    const result = await Workspace.getMemberCount(workspaceId, userId);
 
-        res.status(200).json(result); // Should return { count: 5 }
+    res.status(200).json(result); // Should return { count: 5 }
 
-    } catch (error) {
-         // Handle specific errors like 'Forbidden'
-        if (error.message === 'Forbidden: You are not a member of this workspace.') {
-             return res.status(403).json({ message: error.message });
-        }
-        console.error('Get Member Count Error:', error);
-        res.status(500).json({ message: 'Internal server error while fetching member count.' });
+  } catch (error) {
+    // Handle specific errors like 'Forbidden'
+    if (error.message === 'Forbidden: You are not a member of this workspace.') {
+      return res.status(403).json({ message: error.message });
     }
+    console.error('Get Member Count Error:', error);
+    res.status(500).json({ message: 'Internal server error while fetching member count.' });
+  }
 };
 
 exports.getWorkspaceMembers = async (req, res) => {
-    try {
-        const { workspaceId } = req.params;
-        const userId = req.userData.userId; // User performing the action
+  try {
+    const { workspaceId } = req.params;
+    const userId = req.userData.userId; // User performing the action
 
-        // Call the model function
-        const members = await Workspace.getMembers(workspaceId, userId);
+    // Call the model function
+    const members = await Workspace.getMembers(workspaceId, userId);
 
-        res.status(200).json(members);
+    res.status(200).json(members);
 
-    } catch (error) {
-         // Handle specific errors
-        if (error.message.startsWith('Forbidden')) {
-             return res.status(403).json({ message: error.message });
-        }
-        console.error('Get Workspace Members Error:', error);
-        res.status(500).json({ message: 'Internal server error while fetching members.' });
+  } catch (error) {
+    // Handle specific errors
+    if (error.message.startsWith('Forbidden')) {
+      return res.status(403).json({ message: error.message });
     }
+    console.error('Get Workspace Members Error:', error);
+    res.status(500).json({ message: 'Internal server error while fetching members.' });
+  }
 };
 

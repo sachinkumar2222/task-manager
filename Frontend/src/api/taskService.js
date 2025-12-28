@@ -241,3 +241,24 @@ export const deleteSubtask = async (subtaskId) => {
     throw new Error('Failed to delete subtask.');
   }
 };
+
+// --- Chat/Message APIs ---
+export const getProjectMessages = async (projectId) => {
+  try {
+    const response = await apiClient.get(`/api/projects/${projectId}/messages`);
+    return response.data;
+  } catch (error) {
+    console.error("Get Messages API Error:", error.response?.data || error.message);
+    throw new Error('Failed to fetch messages.');
+  }
+};
+
+export const createMessage = async (projectId, content) => {
+  try {
+    const response = await apiClient.post(`/api/projects/${projectId}/messages`, { content });
+    return response.data;
+  } catch (error) {
+    console.error("Create Message API Error:", error.response?.data || error.message);
+    throw new Error('Failed to send message.');
+  }
+};
