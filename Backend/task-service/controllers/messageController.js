@@ -85,3 +85,55 @@ exports.getProjectMessages = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+/**
+ * Deletes a message.
+ */
+exports.deleteMessage = async (req, res) => {
+    try {
+        const { projectId, messageId } = req.params;
+        const { userId, role } = req.userData;
+
+        // 1. Find the message
+        const message = await prisma.message.findUnique({
+            where: { id: messageId }
+        });
+
+        if (!message) {
+            return res.status(404).json({ message: 'Message not found.' });
+        }
+
+        // 2. Check permissions: sender or ADMIN
+        // Note: role might come from checkAuth if it fetches user details? 
+        // Typically checkAuth decodes token. Token should have role.
+        // Assuming req.userData.role exists.
+
+        if (message.senderId !== userId && role !== 'ADMIN' && role !== 'OWNER') {
+            // Start stricter check: fetch project member role if needed?
+            // For now, let's stick to Sender or Token Role (ADMIN/OWNER).
+            return res.status(403).json({ message: 'Not authorized to delete this message.' });
+        }
+
+        // 3. Delete from DB
+        await prisma.message.delete({
+            where: { id: messageId }
+        });
+
+        console.log(`Message ${messageId} deleted from DB. Broadcasting event...`);
+
+        // 4. Broadcast Deletion Event
+        const { sendProjectEvent } = require('../utils/notificationClient');
+        await sendProjectEvent(projectId, {
+            type: 'MESSAGE_DELETED',
+            messageId: messageId
+        });
+
+        console.log(`Broadcast event sent for message ${messageId} in project ${projectId}`);
+
+        res.status(200).json({ message: 'Message deleted successfully.' });
+
+    } catch (error) {
+        console.error("Error deleting message:", error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};

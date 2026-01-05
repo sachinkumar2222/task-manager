@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { getProjectMessages, createMessage } from '../../api/taskService';
-import { Send, MessageSquare } from 'lucide-react';
+import { getProjectMessages, createMessage, deleteMessage } from '../../api/taskService';
+import { Send, MessageSquare, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { getWorkspaceMembers } from '../../api/authService';
+import toast from 'react-hot-toast';
 
 const ProjectChat = ({ projectId }) => {
     const { socket, currentUser, activeWorkspace } = useAuth();
@@ -30,8 +31,6 @@ const ProjectChat = ({ projectId }) => {
                 ]);
 
                 // Sort messages: API sends Newest first (desc), we want Oldest first for chat (asc)
-                // setMessages(msgs.reverse()); 
-                // Wait, if API returns desc, reversing makes it asc (Oldest at top). Correct.
                 setMessages(msgs.reverse());
                 setMembers(team);
 
@@ -51,19 +50,48 @@ const ProjectChat = ({ projectId }) => {
     useEffect(() => {
         if (!socket) return;
 
-        // Join Room
-        socket.emit('join_project', projectId);
+        // Wait for connection to be open before joining?
+        // Socket.io queues packets, but let's be explicit.
+        if (socket.connected) {
+            console.log("Socket already connected, joining room:", projectId);
+            socket.emit('join_project', projectId);
+        } else {
+            socket.on('connect', () => {
+                console.log("Socket connected, joining room:", projectId);
+                socket.emit('join_project', projectId);
+            });
+        }
+
+        // Handle explicit re-join on reconnection
+        socket.on('reconnect', () => {
+            console.log("Socket reconnected, re-joining room:", projectId);
+            socket.emit('join_project', projectId);
+        });
 
         // Listen for new messages
         const handleEvent = (event) => {
-            // We use a generic 'project_event', check type
+            console.log("Socket Event Received in Chat:", event);
+            // toast(`Received Event: ${event.type}`, { icon: '📩' });
+
             if (event.type === 'CHAT_MESSAGE') {
-                // Check if we already have this message (optimistic UI or duplicated)
-                // Or just append rely on key?
-                // Let's just append.
-                setMessages(prev => [...prev, event.payload]); // payload is the full message object
-                // Scroll to bottom
+                const incomingMsg = event.payload;
+
+                setMessages(prev => {
+                    // Check if message with this ID already exists
+                    if (prev.some(m => m.id === incomingMsg.id)) {
+                        return prev;
+                    }
+                    return [...prev, incomingMsg];
+                });
+
                 setTimeout(scrollToBottom, 50);
+            } else if (event.type === 'MESSAGE_DELETED') {
+                const deletedId = event.messageId;
+                console.log("Processing Delete for ID:", deletedId);
+                setMessages(prev => {
+                    console.log("Previous Messages IDs:", prev.map(m => m.id));
+                    return prev.filter(m => m.id !== deletedId);
+                });
             }
         };
 
@@ -71,7 +99,6 @@ const ProjectChat = ({ projectId }) => {
 
         return () => {
             socket.off('project_event', handleEvent);
-            // leave room? socket.io handles it on disconnect, explicitly leaving is fine but optional here
         };
     }, [socket, projectId]);
 
@@ -87,23 +114,48 @@ const ProjectChat = ({ projectId }) => {
         const tempContent = newMessage;
         setNewMessage(''); // Clear input immediately
 
+        // Optimistic Update
+        const tempMsg = {
+            id: 'temp-' + Date.now(),
+            content: tempContent,
+            senderId: currentUser.id,
+            projectId: projectId,
+            createdAt: new Date().toISOString(),
+            isTemp: true // Flag to indicate it's not confirmed
+        };
+
+        setMessages(prev => [...prev, tempMsg]);
+        setTimeout(scrollToBottom, 50);
+
         try {
-            await createMessage(projectId, tempContent);
-            // We do NOT manually append here because the Socket event will come back to us?
-            // Actually, for "instant" feel, we SHOULD append optimistically (or if socket is fast enough).
-            // But if we append AND socket comes, we get duplicate.
-            // Best practice: Append specific ID or wait for socket.
-            // Since our socket creates message and broadcasts, we will receive it.
-            // But we created it, so we are the sender.
-            // If the backend BROADCASTS to the room, DOES IT include sender?
-            // Usually yes, 'io.to(room).emit' sends to everyone in room INCLUDING sender.
-            // Unlike 'socket.to(room).emit' which excludes sender.
-            // I used 'ioInstance.to(room)' in socketHandler.js, so it INCLUDES sender.
-            // So I don't need to manually append, just wait for socket.
+            const savedMsg = await createMessage(projectId, tempContent);
+
+            // Replace temp message with real one
+            setMessages(prev => prev.map(m =>
+                m.id === tempMsg.id ? savedMsg : m
+            ));
+
         } catch (error) {
             console.error("Send failed:", error);
-            // Restore input?
+            toast.error("Failed to send message");
             setNewMessage(tempContent);
+            // Remove temp message
+            setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+        }
+    };
+
+    const handleDelete = async (msgId) => {
+        // Optimistic delete
+        const prevMessages = [...messages];
+        setMessages(prev => prev.filter(m => m.id !== msgId));
+
+        try {
+            await deleteMessage(projectId, msgId);
+        } catch (error) {
+            console.error("Delete failed:", error);
+            toast.error("Failed to delete message");
+            // Revert
+            setMessages(prevMessages);
         }
     };
 
@@ -128,8 +180,6 @@ const ProjectChat = ({ projectId }) => {
 
     return (
         <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {/* Header / Info? */}
-            {/* <div className="p-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 font-medium">Project Team Chat</div> */}
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -145,12 +195,12 @@ const ProjectChat = ({ projectId }) => {
                     const showHeader = idx === 0 || messages[idx - 1].senderId !== msg.senderId;
 
                     return (
-                        <div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                        <div key={msg.id || idx} className={`group flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                             {showHeader && !isMe && (
                                 <span className="text-xs text-gray-500 ml-1 mb-1">{getUserName(msg.senderId)}</span>
                             )}
 
-                            <div className={`flex gap-2 max-w-[80%] ${isMe ? 'flex-row-reverse' : ''}`}>
+                            <div className={`flex gap-2 max-w-[80%] items-end ${isMe ? 'flex-row-reverse' : ''}`}>
                                 {/* Avatar (only if not me) */}
                                 {!isMe && showHeader ? (
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs text-white font-bold flex-shrink-0 ${getAvatarColor(getUserName(msg.senderId))}`}>
@@ -158,19 +208,33 @@ const ProjectChat = ({ projectId }) => {
                                     </div>
                                 ) : !isMe ? <div className="w-8 ml-0" /> : null}
 
-                                <div
-                                    className={`px-4 py-2 rounded-2xl text-sm break-words ${isMe
+                                <div className="relative group">
+                                    <div
+                                        className={`px-4 py-2 rounded-2xl text-sm break-words relative z-10 ${isMe
                                             ? 'bg-indigo-600 text-white rounded-tr-none'
-                                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-tl-none shadow-sm'
-                                        }`}
-                                >
-                                    {msg.content}
+                                            : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-tl-none shadow-sm'
+                                            } ${msg.isTemp ? 'opacity-70' : ''}`}
+                                    >
+                                        {msg.content}
+                                    </div>
+
+                                    {/* Delete Button - Visible on Hover */}
+                                    {isMe && !msg.isTemp && (
+                                        <button
+                                            onClick={() => handleDelete(msg.id)}
+                                            className={`absolute top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ${isMe ? '-left-8' : '-right-8'
+                                                }`}
+                                            title="Delete message"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Time */}
                             <span className="text-[10px] text-gray-400 mt-1 mx-1">
-                                {format(new Date(msg.createdAt), 'h:mm a')}
+                                {msg.isTemp ? 'Sending...' : format(new Date(msg.createdAt), 'h:mm a')}
                             </span>
                         </div>
                     );
@@ -186,7 +250,7 @@ const ProjectChat = ({ projectId }) => {
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Type a message..."
-                        className="flex-1 bg-gray-100 dark:bg-gray-700/50 border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-gray-800 rounded-full py-2.5 px-4 text-sm transition-all focus:ring-2 focus:ring-indigo-500/20"
+                        className="flex-1 bg-gray-100 dark:bg-gray-700 border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-gray-600 dark:text-gray-100 rounded-full py-2.5 px-4 text-sm transition-all focus:ring-2 focus:ring-indigo-500/20"
                     />
                     <button
                         type="submit"

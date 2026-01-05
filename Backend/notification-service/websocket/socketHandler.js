@@ -45,7 +45,7 @@ const initSocketHandler = (io) => {
     socket.on('join_project', (projectId) => {
       const roomName = `project_${projectId}`;
       socket.join(roomName);
-      // console.log(`Socket ${socket.id} joined ${roomName}`);
+      console.log(`Socket ${socket.id} joined room: ${roomName}`);
     });
   });
 };
@@ -62,9 +62,11 @@ const sendNotificationToUser = (userId, event) => {
 const sendToProject = (projectId, event) => {
   if (ioInstance) {
     const roomName = `project_${projectId}`;
+    console.log(`Broadcasting event ${event.type} to room: ${roomName}`);
     ioInstance.to(roomName).emit('project_event', event);
     // We emit 'project_event' (generic) or 'chat_message' (specific).
     // Let's use 'project_event' and let frontend handle types.
+
 
   }
 };

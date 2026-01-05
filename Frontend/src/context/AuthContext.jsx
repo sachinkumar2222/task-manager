@@ -17,6 +17,8 @@ export const AuthProvider = ({ children }) => {
   const [activeWorkspace, setActiveWorkspaceState] = useState(null); // Active workspace { id, name }
   const [isLoading, setIsLoading] = useState(true); // Initial auth check status
 
+  const [socket, setSocket] = useState(null); // Socket state
+
   // Function to decode token and set user state
   const setUserFromToken = (token) => {
     if (token) {
@@ -71,25 +73,27 @@ export const AuthProvider = ({ children }) => {
 
   // --- WEBSOCKET CONNECTION ---
   useEffect(() => {
-    let socket;
+    let newSocket;
     if (authToken && currentUser) {
       // Connect to the Notification Service (Port 4003 usually, or via Gateway /api/notify if proxied correctly)
-      // Since we are using a Gateway, we might need to connect directly to the service port or configure Gateway for WS.
-      // For simplicity/robustness in dev, we often connect directly to the service port if Gateway WS support is tricky.
-      // However, let's try connecting via the Gateway or the direct service URL.
-      // Assuming Notification Service is on 4003 based on backend Setup.
-
-      socket = io('http://localhost:4003', {
+      newSocket = io('http://localhost:4003', {
         auth: { token: authToken },
-        transports: ['websocket'], // Force WebSocket to avoid polling 400 errors
+        transports: ['websocket'], // Force WebSocket
         withCredentials: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
       });
 
-      socket.on('connect', () => {
-        console.log('Connected to Notification Service:', socket.id);
+      newSocket.on('connect', () => {
+        console.log('Connected to Notification Service:', newSocket.id);
       });
 
-      socket.on('notification', (event) => {
+      newSocket.on('connect_error', (err) => {
+        console.error('Socket Connection Error:', err);
+      });
+
+      newSocket.on('notification', (event) => {
         console.log('New Notification:', event);
         // Show Toast
         toast(event.message, {
@@ -98,16 +102,19 @@ export const AuthProvider = ({ children }) => {
         });
       });
 
-      socket.on('disconnect', () => {
+      newSocket.on('disconnect', () => {
         console.log('Disconnected from Notification Service');
       });
+
+      setSocket(newSocket);
     }
 
     // Cleanup on unmount or token change
     return () => {
-      if (socket) {
-        socket.disconnect();
+      if (newSocket) {
+        newSocket.disconnect();
       }
+      setSocket(null);
     };
   }, [authToken, currentUser]);
 
@@ -143,9 +150,6 @@ export const AuthProvider = ({ children }) => {
       console.log("Active workspace set:", workspace);
     } else {
       console.error("Attempted to set invalid workspace:", workspace);
-      // Optionally clear it if invalid data is passed
-      // setActiveWorkspaceState(null);
-      // localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
     }
   };
 
@@ -153,13 +157,14 @@ export const AuthProvider = ({ children }) => {
   const value = {
     authToken,
     currentUser,
-    activeWorkspace, // Expose active workspace
+    activeWorkspace,
     isAuthenticated: !!authToken,
     isLoading,
     login,
     logout,
-    setActiveWorkspace, // Expose the setter function
-    setCurrentUser, // Expose the setter for profile updates
+    setActiveWorkspace,
+    setCurrentUser,
+    socket, // Expose socket
   };
 
   return (

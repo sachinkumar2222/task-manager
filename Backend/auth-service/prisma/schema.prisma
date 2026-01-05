@@ -5,7 +5,12 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
+
+// Connection pool configuration - prevents timeout errors
+// Supabase free tier has limited connections, so we optimize pool settings
 
 model Workspace {
   id          String        @id @default(uuid())

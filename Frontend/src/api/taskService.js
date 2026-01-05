@@ -262,3 +262,12 @@ export const createMessage = async (projectId, content) => {
     throw new Error('Failed to send message.');
   }
 };
+
+export const deleteMessage = async (projectId, messageId) => {
+  try {
+    await apiClient.delete(`/api/projects/${projectId}/messages/${messageId}`);
+  } catch (error) {
+    console.error("Delete Message API Error:", error.response?.data || error.message);
+    throw new Error('Failed to delete message.');
+  }
+};
