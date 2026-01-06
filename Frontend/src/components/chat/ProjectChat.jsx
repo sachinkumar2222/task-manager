@@ -50,27 +50,26 @@ const ProjectChat = ({ projectId }) => {
     useEffect(() => {
         if (!socket) return;
 
-        // Wait for connection to be open before joining?
-        // Socket.io queues packets, but let's be explicit.
-        if (socket.connected) {
-            console.log("Socket already connected, joining room:", projectId);
-            socket.emit('join_project', projectId);
-        } else {
-            socket.on('connect', () => {
-                console.log("Socket connected, joining room:", projectId);
-                socket.emit('join_project', projectId);
-            });
-        }
+        // Handler for joining the project room
+        const joinRoom = () => {
 
-        // Handle explicit re-join on reconnection
-        socket.on('reconnect', () => {
-            console.log("Socket reconnected, re-joining room:", projectId);
             socket.emit('join_project', projectId);
-        });
+        };
+
+        // Always listen for 'connect' to handle re-connections automatically
+        socket.on('connect', joinRoom);
+
+        // If 'reconnect' is fired separately (depending on client version), handle it too
+        socket.on('reconnect', joinRoom);
+
+        // If already connected, join immediately
+        if (socket.connected) {
+            joinRoom();
+        }
 
         // Listen for new messages
         const handleEvent = (event) => {
-            console.log("Socket Event Received in Chat:", event);
+
             // toast(`Received Event: ${event.type}`, { icon: '📩' });
 
             if (event.type === 'CHAT_MESSAGE') {
@@ -87,9 +86,9 @@ const ProjectChat = ({ projectId }) => {
                 setTimeout(scrollToBottom, 50);
             } else if (event.type === 'MESSAGE_DELETED') {
                 const deletedId = event.messageId;
-                console.log("Processing Delete for ID:", deletedId);
+
                 setMessages(prev => {
-                    console.log("Previous Messages IDs:", prev.map(m => m.id));
+
                     return prev.filter(m => m.id !== deletedId);
                 });
             }
@@ -99,6 +98,8 @@ const ProjectChat = ({ projectId }) => {
 
         return () => {
             socket.off('project_event', handleEvent);
+            socket.off('connect', joinRoom);
+            socket.off('reconnect', joinRoom);
         };
     }, [socket, projectId]);
 
@@ -203,10 +204,21 @@ const ProjectChat = ({ projectId }) => {
                             <div className={`flex gap-2 max-w-[80%] items-end ${isMe ? 'flex-row-reverse' : ''}`}>
                                 {/* Avatar (only if not me) */}
                                 {!isMe && showHeader ? (
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs text-white font-bold flex-shrink-0 ${getAvatarColor(getUserName(msg.senderId))}`}>
-                                        {getUserName(msg.senderId).charAt(0)}
-                                    </div>
-                                ) : !isMe ? <div className="w-8 ml-0" /> : null}
+                                    (() => {
+                                        const senderImage = members.find(m => m.userId === msg.senderId)?.profileImage;
+                                        return senderImage ? (
+                                            <img
+                                                src={senderImage}
+                                                alt={getUserName(msg.senderId)}
+                                                className="w-8 h-8 rounded-full object-cover flex-shrink-0 mr-2 border border-gray-200 dark:border-gray-700"
+                                            />
+                                        ) : (
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs text-white font-bold flex-shrink-0 mr-2 ${getAvatarColor(getUserName(msg.senderId))}`}>
+                                                {getUserName(msg.senderId).charAt(0)}
+                                            </div>
+                                        );
+                                    })()
+                                ) : !isMe ? <div className="w-8 mr-2" /> : null}
 
                                 <div className="relative group">
                                     <div

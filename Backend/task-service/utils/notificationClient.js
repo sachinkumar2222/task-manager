@@ -57,7 +57,7 @@ const sendProjectEvent = async (projectId, event) => {
       { projectId, event },
       { headers: { 'x-internal-api-key': apiKey } }
     );
-    console.log(`Successfully sent project event to ${serviceUrl}/api/notify/project`);
+
   } catch (error) {
     console.error(`Error sending project event: ${error.message}`);
   }

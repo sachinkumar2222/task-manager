@@ -262,11 +262,12 @@ const Workspace = {
               id: true,
               fullName: true,
               email: true,
+              profileImage: true, // Fetch profile image
             },
           },
         },
         orderBy: {
-          role: 'asc' // Show ADMINs first (alphabetically 'ADMIN' comes before 'TEAM_MEMBER')
+          role: 'asc' // Show ADMINs first
         }
       });
 
@@ -276,6 +277,7 @@ const Workspace = {
         role: m.role,
         fullName: m.user.fullName,
         email: m.user.email,
+        profileImage: m.user.profileImage, // Include in response
       }));
 
     } catch (error) {

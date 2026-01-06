@@ -76,7 +76,8 @@ export const AuthProvider = ({ children }) => {
     let newSocket;
     if (authToken && currentUser) {
       // Connect to the Notification Service (Port 4003 usually, or via Gateway /api/notify if proxied correctly)
-      newSocket = io('http://localhost:4003', {
+      const SOCKET_URL = import.meta.env.VITE_NOTIFICATION_SERVICE_URL || 'http://localhost:4003';
+      newSocket = io(SOCKET_URL, {
         auth: { token: authToken },
         transports: ['websocket'], // Force WebSocket
         withCredentials: true,
@@ -86,15 +87,17 @@ export const AuthProvider = ({ children }) => {
       });
 
       newSocket.on('connect', () => {
-        console.log('Connected to Notification Service:', newSocket.id);
+
       });
 
       newSocket.on('connect_error', (err) => {
         console.error('Socket Connection Error:', err);
+        // Toast the error to help debugging
+        toast.error(`Socket Error: ${err.message}`);
       });
 
       newSocket.on('notification', (event) => {
-        console.log('New Notification:', event);
+
         // Show Toast
         toast(event.message, {
           icon: '🔔',
@@ -103,7 +106,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       newSocket.on('disconnect', () => {
-        console.log('Disconnected from Notification Service');
+
       });
 
       setSocket(newSocket);
@@ -147,7 +150,7 @@ export const AuthProvider = ({ children }) => {
     if (workspace && workspace.id && workspace.name) {
       setActiveWorkspaceState(workspace);
       localStorage.setItem(ACTIVE_WORKSPACE_KEY, JSON.stringify(workspace)); // Save to localStorage
-      console.log("Active workspace set:", workspace);
+
     } else {
       console.error("Attempted to set invalid workspace:", workspace);
     }
