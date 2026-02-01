@@ -1,5 +1,5 @@
 const { prisma } = require('../config/prismaClient');
-const { sendNotification } = require('../utils/notificationClient');
+const { sendProjectEvent } = require('../utils/notificationClient');
 
 /**
  * Creates a new chat message in a project.
@@ -45,7 +45,7 @@ exports.createMessage = async (req, res) => {
         // But for now, let's just comment it out or send to the 'sender' as a test confirmation? No.
 
         // I will import a new function 'sendProjectEvent' (which I will implement next).
-        const { sendProjectEvent } = require('../utils/notificationClient');
+
         sendProjectEvent(projectId, {
             type: 'CHAT_MESSAGE',
             message: content,
@@ -121,8 +121,6 @@ exports.deleteMessage = async (req, res) => {
 
         console.log(`Message ${messageId} deleted from DB. Broadcasting event...`);
 
-        // 4. Broadcast Deletion Event
-        const { sendProjectEvent } = require('../utils/notificationClient');
         await sendProjectEvent(projectId, {
             type: 'MESSAGE_DELETED',
             messageId: messageId

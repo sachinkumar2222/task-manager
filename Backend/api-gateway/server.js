@@ -62,10 +62,13 @@ app.use('/api/tasks', createProxy(process.env.TASK_SERVICE_URL, '/api'));
 app.use('/api/comments', createProxy(process.env.TASK_SERVICE_URL, '/api/comments'));
 // Strip only '/api' so /api/subtasks acts like /api/tasks -> /tasks (preserving /subtasks)
 app.use('/api/subtasks', createProxy(process.env.TASK_SERVICE_URL, '/api'));
+
 app.use('/api/analytics', createProxy(process.env.ANALYTICS_SERVICE_URL, '/api/analytics'));
+
 app.use('/api/notify', createProxy(process.env.NOTIFICATION_SERVICE_URL, '/api/notify'));
-app.use('/api/files', createProxy(process.env.FILE_SERVICE_URL, '/api/files', { parseReqBody: false }));
 app.use('/api/notifications', createProxy(process.env.NOTIFICATION_SERVICE_URL, '/api/notifications'));
+
+app.use('/api/files', createProxy(process.env.FILE_SERVICE_URL, '/api/files', { parseReqBody: false }));
 
 
 // Health check for the gateway itself

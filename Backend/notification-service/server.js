@@ -5,6 +5,14 @@ const { Server } = require('socket.io');
 const { initSocketHandler } = require('./websocket/socketHandler');
 const eventListenerRoutes = require('./listeners/eventListener');
 
+// User-facing Notification Routes
+const notificationController = require('./controllers/notificationController');
+const checkAuth = require('./middleware/checkAuth');
+const router = express.Router();
+
+// Connect to MongoDB
+const mongoose = require('mongoose');
+
 const app = express();
 const server = http.createServer(app);
 
@@ -28,17 +36,10 @@ initSocketHandler(io);
 app.use(express.json());
 
 // --- Routes ---
-
-// Internal Event Listener (for other microservices)
 // Internal Event Listener (for other microservices)
 // Handle both paths to support Direct calls (preserving /api/notify) AND Gateway calls (stripping to /)
 app.use('/api/notify', eventListenerRoutes);
 app.use('/', eventListenerRoutes);
-
-// User-facing Notification Routes
-const notificationController = require('./controllers/notificationController');
-const checkAuth = require('./middleware/checkAuth');
-const router = express.Router();
 
 router.get('/', checkAuth, notificationController.getUserNotifications);
 router.put('/:notificationId/read', checkAuth, notificationController.markAsRead);
@@ -48,8 +49,6 @@ router.put('/read-all', checkAuth, notificationController.markAllAsRead);
 // Gateway strips /api/notifications -> /
 app.use('/', router);
 
-// Connect to MongoDB
-const mongoose = require('mongoose');
 mongoose.connect(process.env.DATABASE_URL || 'mongodb+srv://sachin2322006:analytics-service@analytics-service.c7ml3v.mongodb.net/notification-service?retryWrites=true&w=majority&appName=notification-service')
   .then(() => console.log('✅ Notification Service MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));

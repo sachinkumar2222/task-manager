@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal'; // Import the reusable Modal
 import { createProject, updateProject } from '../../api/taskService'; // Import updateProject
+import toast from 'react-hot-toast';
+
 
 /**
  * ProjectModal

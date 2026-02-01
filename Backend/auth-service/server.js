@@ -8,7 +8,6 @@ const app = express();
 
 app.use(express.json());
 
-// --- ROUTES REGISTRATION UPDATED ---
 // Register authRoutes at the root ('/') because the API Gateway already adds '/api/auth'
 app.use('/', authRoutes); 
 
@@ -23,7 +22,6 @@ app.get('/', (req, res) => {
     });
 });
 
-// Use the correct port for the auth service
 const PORT = process.env.PORT || 4001; 
 
 app.listen(PORT, () => {

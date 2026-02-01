@@ -22,7 +22,7 @@ const ProjectPage = () => {
     const { projectId } = useParams();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const { activeWorkspace, isAdmin } = useAuth();
+    const { activeWorkspace } = useAuth();
     const { fetchProjects } = useProjects();
     const [projectDetails, setProjectDetails] = useState(null);
     const [tasks, setTasks] = useState([]);
@@ -37,6 +37,8 @@ const ProjectPage = () => {
     const [isUpdatingProject, setIsUpdatingProject] = useState(false);
     const [workspaceMembers, setWorkspaceMembers] = useState([]);
     const [activeTab, setActiveTab] = useState('board'); // 'board', 'chat'
+
+    const isAdmin = activeWorkspace?.role?.toUpperCase() === 'ADMIN';
 
     // Grouping tasks by status
     const groupedTasks = useMemo(() => {

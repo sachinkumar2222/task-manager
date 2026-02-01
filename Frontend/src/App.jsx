@@ -5,15 +5,15 @@ import { Toaster } from 'react-hot-toast'; // Import Toaster
 import LandingPage from './pages/LandingPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
-import DashboardPage from './pages/DashboardPage.jsx'; // Import the real DashboardPage
-import WorkspaceSelectionPage from './pages/WorkspaceSelectionPage.jsx'; // Import the new page
+import DashboardPage from './pages/DashboardPage.jsx'; 
+import WorkspaceSelectionPage from './pages/WorkspaceSelectionPage.jsx'; 
 import AcceptInvitePage from './pages/AcceptInvitePage.jsx';
 import ProjectPage from './pages/ProjectPage.jsx';
 import ProjectsPage from './pages/ProjectsPage.jsx';
-import TasksPage from './pages/TasksPage.jsx'; // Import TasksPage
-import CalendarPage from './pages/CalendarPage.jsx'; // Import CalendarPage
-import NotificationPage from './pages/NotificationPage.jsx'; // Import Notification Page
-import SettingsPage from './pages/SettingsPage.jsx'; // Import Settings Page
+import TasksPage from './pages/TasksPage.jsx'; 
+import CalendarPage from './pages/CalendarPage.jsx'; 
+import NotificationPage from './pages/NotificationPage.jsx'; 
+import SettingsPage from './pages/SettingsPage.jsx'; 
 // import NotFoundPage from './pages/NotFoundPage.jsx'; // Not built yet
 
 // Layouts
@@ -25,14 +25,8 @@ import ProtectedRoute from './ProtectedRoute.jsx'; // Import the real ProtectedR
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ProjectProvider } from './context/ProjectContext.jsx'; // Import ProjectProvider
 
-/**
- * App Component
- * Added WorkspaceSelectionPage route after login.
- * Dashboard is now within AppLayout.
- * Added missing Outlet import.
- */
 function App() {
-  // Placeholder components for routes/layouts not yet implemented
+
   const PlaceholderNotFoundPage = () => <div>404 Not Found</div>; // Temporary Placeholder
 
   return (

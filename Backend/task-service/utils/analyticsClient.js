@@ -5,10 +5,10 @@ const axios = require('axios');
  * @param {object} event - The event data (e.g., eventType, workspaceId, etc.).
  */
 const sendAnalyticsEvent = async (event) => {
-  try {
-    const serviceUrl = process.env.ANALYTICS_SERVICE_URL; // e.g., http://localhost:4005
-    const apiKey = process.env.INTERNAL_API_KEY;
+  const serviceUrl = process.env.ANALYTICS_SERVICE_URL; // e.g., http://localhost:4005
+  const apiKey = process.env.INTERNAL_API_KEY;
 
+  try {
     if (!serviceUrl || !apiKey) {
       console.error("[Task Service] Analytics service URL or API Key is not configured.");
       return;

@@ -23,7 +23,7 @@ exports.createProject = async (req, res) => {
     const newProject = await Project.create({
       name,
       description,
-      workspaceId, // Pass workspaceId to model
+      workspaceId, 
       creatorId: userId,
     });
 
@@ -121,15 +121,12 @@ exports.updateProject = async (req, res) => {
       return res.status(400).json({ message: 'Workspace ID is missing.' });
     }
 
-    // Security Check: Find the project first to ensure it's in their workspace
     const project = await Project.findByIdAndWorkspace(projectId, workspaceId);
     if (!project) {
       return res.status(404).json({ message: 'Project not found in this workspace.' });
     }
 
-    // TODO: Add role-based check (e.g., only ADMIN or project creator (project.creatorId === userId))
 
-    // Call model to update
     const updatedProject = await Project.update(projectId, { name, description });
     res.status(200).json(updatedProject);
 

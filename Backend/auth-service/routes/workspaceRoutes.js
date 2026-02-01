@@ -23,7 +23,6 @@ router.delete('/:workspaceId', checkAuth, workspaceController.deleteWorkspace);
 // GET /api/workspaces/:workspaceId/members/count -> Get the member count
 router.get('/:workspaceId/members/count', checkAuth, workspaceController.getMemberCount);
 
-// --- YEH NAYA ROUTE HAI (For Task Assignment) ---
 // GET /api/workspaces/:workspaceId/members -> Get list of all members (id, name, email)
 router.get('/:workspaceId/members', checkAuth, workspaceController.getWorkspaceMembers);
 

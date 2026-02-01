@@ -29,11 +29,7 @@ const AnalyticsEventSchema = new mongoose.Schema({
 const AnalyticsEvent = mongoose.model('AnalyticsEvent', AnalyticsEventSchema);
 
 const Analytics = {
-  /**
-   * Saves a new event document to the database.
-   * @param {object} eventData - The event data to save.
-   * @returns {Promise<object>} The saved Mongoose document.
-   */
+
   async createEvent(eventData) {
     const newEvent = new AnalyticsEvent(eventData);
     return await newEvent.save();
@@ -62,8 +58,7 @@ const Analytics = {
       AnalyticsEvent.countDocuments({ workspaceId, eventType: 'TASK_DELETED' }),
       AnalyticsEvent.countDocuments({ workspaceId, eventType: 'TASK_COMPLETED' }),
       AnalyticsEvent.countDocuments({
-        workspaceId,
-        eventType: 'TASK_CREATED',
+        workspaceId, eventType: 'TASK_CREATED',
         createdAt: { $gte: sevenDaysAgo }
       })
     ]);

@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # --- Backend Services ---
+  auth-service:
+    build: ./Backend/auth-service
+    container_name: auth-service
+    ports:
+      - "4001:4001"
+    env_file:
+      - ./Backend/auth-service/.env
+    environment:
+      - PORT=4001
+      # Local overrides if needed, otherwise uses .env
+      # - DATABASE_URL=${DATABASE_URL} 
+
+  task-service:
+    build: ./Backend/task-service
+    container_name: task-service
+    ports:
+      - "4002:4002"
+    env_file:
+      - ./Backend/task-service/.env
+    environment:
+      - PORT=4002
+      # Ensure inter-service URLs use Docker service names if they are communicating internally
+      - NOTIFICATION_SERVICE_URL=http://notification-service:4003
+
+  notification-service:
+    build: ./Backend/notification-service
+    container_name: notification-service
+    ports:
+      - "4003:4003"
+    env_file:
+      - ./Backend/notification-service/.env
+    environment:
+      - PORT=4003
+      - CORS_ORIGIN=http://localhost:3000
+
+  analytics-service:
+    build: ./Backend/analytics-service
+    container_name: analytics-service
+    ports:
+      - "4005:4005"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    env_file:
+      - ./Backend/analytics-service/.env
+    environment:
+      - PORT=4005
+
+  file-service:
+    build: ./Backend/file-service
+    container_name: file-service
+    ports:
+      - "4004:4004"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    env_file:
+      - ./Backend/file-service/.env
+    environment:
+      - PORT=4004
+
+  api-gateway:
+    build: ./Backend/api-gateway
+    container_name: api-gateway
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - AUTH_SERVICE_URL=http://auth-service:4001
+      - TASK_SERVICE_URL=http://task-service:4002
+      - NOTIFICATION_SERVICE_URL=http://notification-service:4003
+      - FILE_SERVICE_URL=http://file-service:4004
+      - ANALYTICS_SERVICE_URL=http://analytics-service:4005
+      - CORS_ORIGIN=http://localhost:3000
+    depends_on:
+      - auth-service
+      - task-service
+      - notification-service
+      - analytics-service
+      - file-service
+
+  # --- Frontend ---
+  frontend:
+    build: ./Frontend
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+
+# volumes: # No local volumes needed since we are using external DBs

@@ -10,7 +10,6 @@ const initSocketHandler = (io) => {
     let token = socket.handshake.auth.token;
 
     if (!token) {
-
       return next(new Error('Authentication error: Token not provided.'));
     }
 
